@@ -445,7 +445,7 @@ const Checkout = () => {
               {/* زر إتمام الطلب تحت بطاقة ثواني */}
               <button
                 onClick={makePayment}
-                className="mt-4 w-full bg-[#CB908B] text-white px-6 py-3 rounded-md hover:bg-[#b97d78] transition-colors"
+                className="mt-4 w-full bg-[#d3beaa] text-white px-6 py-3 rounded-md  transition-colors"
                 disabled={products.length === 0}
               >
                 إتمام الطلب

@@ -56,7 +56,7 @@ const AdminDashboard = () => {
                 <hr  className='mb-3'/>
                 <button 
                 onClick={handleLogout}
-                className='text-white bg-[#3D4B2E] font-medium px-5 py-1 rounded-sm'>تسجيل الخروج</button>
+                className='text-white bg-[#d3beaa] font-medium px-5 py-1 rounded-sm'>تسجيل الخروج</button>
             </div>
         </div>
   )
