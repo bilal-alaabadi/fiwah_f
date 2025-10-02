@@ -146,11 +146,11 @@ const ShopPage = () => {
 
           {/* Products List */}
           <div className='md:w-3/4'>
-            <div className='flex justify-between items-center mb-6'>
+            {/* <div className='flex justify-between items-center mb-6'>
               <h3 className='text-lg font-medium text-[#d3beaa]'>
                 عرض {startProduct}-{endProduct} من {totalProducts} منتج
               </h3>
-            </div>
+            </div> */}
 
             {pagedProducts.length > 0 ? (
               <>

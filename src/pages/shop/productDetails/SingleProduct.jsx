@@ -48,15 +48,16 @@ const SingleProduct = () => {
 
   return (
     <section
-      className="section__container bg-gradient-to-r  mt-8"
+      className="section__container bg-gradient-to-r mt-8"
       dir="rtl"
     >
       <div className="flex flex-col items-center md:flex-row gap-8">
         {/* الصور */}
-        <div className="md:w-1/2 w-full relative">
+        <div className="md:w-1/2 w-full relative flex flex-col items-center">
           {data.image && data.image.length > 0 ? (
             <>
-              <div className="overflow-hidden rounded-md">
+              {/* الصورة الرئيسية */}
+              <div className="overflow-hidden rounded-md relative w-full">
                 <img
                   src={data.image[currentImageIndex]}
                   alt={data.name}
@@ -65,23 +66,56 @@ const SingleProduct = () => {
                     e.target.src = 'https://via.placeholder.com/500';
                   }}
                 />
+
+                {/* أزرار التالي/السابق (تظهر فقط إذا كان هناك أكثر من صورة) */}
+                {data.image.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-[#d3beaa] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:opacity-90"
+                      aria-label="الصورة السابقة"
+                      type="button"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={nextImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#d3beaa] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:opacity-90"
+                      aria-label="الصورة التالية"
+                      type="button"
+                    >
+                      ‹
+                    </button>
+                  </>
+                )}
               </div>
 
-              {data.image.length > 1 && (
-                <>
-                  <button
-                    onClick={prevImage}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 bg-[#d3beaa] text-white p-2 rounded-full"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    onClick={nextImage}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#d3beaa] text-white p-2 rounded-full"
-                  >
-                    ›
-                  </button>
-                </>
+              {/* جميع الصور بالأسفل (thumbnails) */}
+              {data.image.length > 0 && (
+                <div className="mt-4 w-full">
+                  <div className="flex gap-3 flex-wrap justify-center md:justify-start overflow-x-auto py-1">
+                    {data.image.map((img, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImageIndex(index)}
+                        className={`rounded-md border-2 p-0 overflow-hidden transition 
+                          ${index === currentImageIndex ? 'border-[#d3beaa]' : 'border-transparent hover:border-[#d3beaa]/60'}`}
+                        type="button"
+                        aria-label={`عرض الصورة رقم ${index + 1}`}
+                        title={`عرض الصورة رقم ${index + 1}`}
+                      >
+                        <img
+                          src={img}
+                          alt={`صورة ${index + 1}`}
+                          className="w-20 h-20 object-cover block"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/100';
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </>
           ) : (

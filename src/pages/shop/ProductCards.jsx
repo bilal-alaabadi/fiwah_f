@@ -92,7 +92,7 @@ const ProductCards = ({ products }) => {
             className='product__card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative flex flex-col h-full'
           >
             {hasRealDiscount && (
-              <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
+              <div className="absolute top-3 left-3 bg-[#d3beaa] text-white text-xs font-bold px-2 py-1 rounded-full z-10">
                 خصم {discountPercentage}%
               </div>
             )}

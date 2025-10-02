@@ -100,7 +100,7 @@ const TrendingProducts = ({ onProductsLoaded }) => {
                 className="product__card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative flex flex-col h-full"
               >
                 {oldPrice && oldPrice !== price && (
-                  <div className="absolute top-3 left-3 bg-[#3D4B2E] text-white text-xs font-bold px-2 py-1 rounded-full z-10">
+                  <div className="absolute top-3 left-3 bg-[#d3beaa] text-white text-xs font-bold px-2 py-1 rounded-full z-10">
                     خصم {discountPercentage}%
                   </div>
                 )}
@@ -121,7 +121,8 @@ const TrendingProducts = ({ onProductsLoaded }) => {
                   </Link>
                 </div>
 
-                <div className="p-4">
+                {/* ← إضافة text-center هنا فقط */}
+                <div className="p-4 text-center">
                   <h4 className="text-lg font-semibold mb-1 line-clamp-2" title={product.name}>
                     {product.name || 'اسم المنتج'}
                   </h4>
