@@ -1,7 +1,7 @@
 // HeroSection.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import card1 from "../../assets/ChatGPT Image Sep 28, 2025, 02_15_20 PM.png";
+import card1 from "../../assets/IMG_2482.jpg";
 import card2 from "../../assets/ChatGPT Image Sep 28, 2025, 01_08_46 PM.png";
 import card3 from "../../assets/IMG_7308.jpg";
 import log from "../../assets/logo_d3beaa.png"; // شعار الأنثور
