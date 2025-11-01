@@ -1,18 +1,43 @@
+// ========================= src/components/Cart/OrderSummary.jsx =========================
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearCart } from '../../redux/features/cart/cartSlice';
 import { Link } from 'react-router-dom';
 
+const computeGulfShippingOMR = (country, totalItems) => {
+  // نفس منطق الريدكس لضمان التطابق في العرض
+  const n = Math.max(0, Number(totalItems) || 0);
+
+  if (country === 'عُمان' || country === 'عمان') return 2;
+  if (country === 'الإمارات') return 4;
+
+  if (country === 'دول الخليج') {
+    const base = 5;                // أول 3 منتجات
+    if (n <= 3) return base;       // لا زيادة لأول 3
+    const extraItems = n - 3;      // من الرابع فصاعدًا
+    const blocks = Math.ceil(extraItems / 3); // كل 3 منتجات إضافية
+    return base + blocks * 4;      // +4 ر.ع لكل بلوك
+  }
+
+  return 2;
+};
+
 const OrderSummary = ({ onClose }) => {
   const dispatch = useDispatch();
-  const { products = [], totalPrice = 0, shippingFee = 0, country } = useSelector((s) => s.cart);
+  const { products = [], totalPrice = 0, country } = useSelector((s) => s.cart);
 
   const isAED = country === 'الإمارات' || country === 'دول الخليج';
   const currency = isAED ? 'د.إ' : 'ر.ع.';
   const exchangeRate = isAED ? 9.5 : 1;
 
-  const baseShippingFee = country === 'دول الخليج' ? 5 : Number(shippingFee || 0);
-  const grandTotal = (Number(totalPrice) + Number(baseShippingFee)) * exchangeRate;
+  // إجمالي عدد القطع في السلة
+  const totalItems = products.reduce((acc, p) => acc + Number(p.quantity || 0), 0);
+
+  // احسب الشحن بالريال العُماني وفق القاعدة الجديدة
+  const shippingOMR = computeGulfShippingOMR(country, totalItems);
+
+  // المجموع الكلي بالعملة المعروضة
+  const grandTotal = (Number(totalPrice) + Number(shippingOMR)) * exchangeRate;
 
   return (
     <div className="text-sm text-gray-800" dir="rtl">
@@ -24,10 +49,13 @@ const OrderSummary = ({ onClose }) => {
             {(Number(totalPrice) * exchangeRate).toFixed(2)} {currency}
           </span>
         </div>
+
         <div className="flex items-center justify-between">
-          <span className="text-gray-600">الشحن</span>
+          <span className="text-gray-600">
+            الشحن {country === 'دول الخليج' ? `(عدد العناصر: ${totalItems})` : ''}
+          </span>
           <span className="font-medium">
-            {(Number(baseShippingFee) * exchangeRate).toFixed(2)} {currency}
+            {(Number(shippingOMR) * exchangeRate).toFixed(2)} {currency}
           </span>
         </div>
 

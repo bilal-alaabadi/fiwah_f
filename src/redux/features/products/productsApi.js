@@ -1,3 +1,4 @@
+// ========================= redux/features/products/productsApi.js =========================
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { getBaseUrl } from "../../../utils/baseURL";
 
@@ -9,7 +10,6 @@ const productsApi = createApi({
   }),
   tagTypes: ["Product", "ProductList"],
   endpoints: (builder) => ({
-    // جلب جميع المنتجات مع إمكانية التصفية والترتيب
     fetchAllProducts: builder.query({
       query: ({
         category,
@@ -50,11 +50,9 @@ const productsApi = createApi({
           : ["ProductList"],
     }),
 
-    // جلب منتج بالمعرّف (مرن لعدة صيغ Response) ويُرجع دائمًا size
     fetchProductById: builder.query({
       query: (id) => `/product/${id}`,
       transformResponse: (response) => {
-        // يدعم: { product }, { data }, أو كائن المنتج مباشرة
         const p = response?.product ?? response?.data ?? response;
 
         if (!p || !p._id) {
@@ -71,19 +69,19 @@ const productsApi = createApi({
           _id: p._id,
           name: p.name ?? "",
           category: p.category ?? "",
-          size: typeof p.size === "number" || typeof p.size === "string" ? p.size : "", // ليظهر في شاشة التعديل
+          size: typeof p.size === "number" || typeof p.size === "string" ? p.size : "",
           price: p.price ?? "",
           oldPrice: p.oldPrice ?? "",
           description: p.description ?? "",
           image: images,
           author: p.author ?? null,
           inStock: typeof p.inStock === "boolean" ? p.inStock : true,
+          stock: typeof p.stock === "number" ? p.stock : 0, // ✅ إرجاع الكمية
         };
       },
       providesTags: (result, error, id) => [{ type: "Product", id }],
     }),
 
-    // جلب المنتجات المرتبطة (منتجات مشابهة)
     fetchRelatedProducts: builder.query({
       query: (id) => `/related/${id}`,
       providesTags: (result, error, id) => [
@@ -92,7 +90,6 @@ const productsApi = createApi({
       ],
     }),
 
-    // إضافة منتج جديد
     addProduct: builder.mutation({
       query: (newProduct) => ({
         url: "/create-product",
@@ -102,12 +99,11 @@ const productsApi = createApi({
       invalidatesTags: ["ProductList"],
     }),
 
-    // تحديث المنتج (FormData مدعوم)
     updateProduct: builder.mutation({
       query: ({ id, body }) => ({
         url: `/update-product/${id}`,
         method: "PATCH",
-        body, // إذا كان FormData سيُضبط Content-Type تلقائياً
+        body,
         credentials: "include",
       }),
       invalidatesTags: (result, error, { id }) => [
@@ -116,7 +112,6 @@ const productsApi = createApi({
       ],
     }),
 
-    // حذف المنتج
     deleteProduct: builder.mutation({
       query: (id) => ({
         url: `/${id}`,
@@ -128,11 +123,9 @@ const productsApi = createApi({
       ],
     }),
 
-    // بحث عن المنتجات
     searchProducts: builder.query({
       query: (searchTerm) => `/search?q=${searchTerm}`,
       transformResponse: (response) => {
-        // توحيد الصور + الحفاظ على price كما يأتي من السيرفر
         return (Array.isArray(response) ? response : []).map((product) => ({
           ...product,
           image: Array.isArray(product.image)
@@ -151,7 +144,6 @@ const productsApi = createApi({
           : ["ProductList"],
     }),
 
-    // جلب المنتجات الأكثر مبيعاً
     fetchBestSellingProducts: builder.query({
       query: (limit = 4) => `/best-selling?limit=${limit}`,
       providesTags: ["ProductList"],

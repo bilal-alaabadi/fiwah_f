@@ -3,7 +3,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RiBankCardLine } from "react-icons/ri";
 import { getBaseUrl } from "../../utils/baseURL";
-// ✅ عدّل المسار حسب مشروعك لو اختلف
 import { setCountry, clearGiftCard } from "../../redux/features/cart/cartSlice";
 import Thw from "../../assets/images__4_-removebg-preview.png";
 
@@ -17,31 +16,40 @@ const Checkout = () => {
   const [wilayat, setWilayat] = useState("");
   const [description, setDescription] = useState("");
 
-  // وضع دفع المقدم (10 ر.ع) إذا كان ضمن الطلب تفصيل عباية
   const [payDeposit, setPayDeposit] = useState(false);
-
-  // خيار دولة من دول الخليج (يظهر فقط إذا country === "دول الخليج")
   const [gulfCountry, setGulfCountry] = useState("");
 
   const { products, totalPrice, country, giftCard } = useSelector((state) => state.cart);
 
   const currency = country === "دول الخليج" ? "د.إ" : "ر.ع.";
-  const exchangeRate = country === "دول الخليج" ? 9.5 : 1; // للعرض فقط
+  const exchangeRate = country === "دول الخليج" ? 9.5 : 1;
 
-  // رسوم الشحن الأساسية (تُخزَّن وتُحسب دائماً بالريال العُماني)
-  const baseShippingFee = useMemo(() => {
+  // ✅ يجب اختيار دولة خليجية عندما تكون "دول الخليج" مفعلة
+  const mustPickGulf = country === "دول الخليج";
+  const isRegionReady = !mustPickGulf || !!gulfCountry;
+
+  // إجمالي عدد القطع في السلة
+  const totalItems = useMemo(
+    () => products.reduce((sum, p) => sum + Number(p.quantity || 0), 0),
+    [products]
+  );
+
+  // ✅ الشحن (ريال عُماني) مع سياسة: أول 3 منتجات لا تغيّر السعر، وكل 3 إضافية +4 ر.ع.
+  const shippingOMR = useMemo(() => {
     if (country === "دول الخليج") {
-      // الإمارات = 4 ر.ع ، غيرها = 5 ر.ع
-      return gulfCountry === "الإمارات" ? 4 : 5;
+      const base = gulfCountry === "الإمارات" ? 4 : 5; // الأساس
+      const n = Math.max(0, totalItems);
+      if (n <= 3) return base;
+      const extra = n - 3;
+      const blocks = Math.ceil(extra / 3); // 👈 يبدأ من القطعة الرابعة
+      return base + blocks * 4;
     }
-    // داخل عُمان بقيت 2 ر.ع كما كانت
-    return 2;
-  }, [country, gulfCountry]);
+    return 2; // داخل عُمان ثابت
+  }, [country, gulfCountry, totalItems]);
 
-  // بعد ذلك تُعرَض بحسب العملة المختارة (قد تُحوَّل إلى AED إن كانت دول الخليج)
-  const shippingFee = baseShippingFee * exchangeRate;
+  // عرض الشحن بحسب العملة المختارة
+  const shippingFee = shippingOMR * exchangeRate;
 
-  // هل يوجد ضمن الطلب "تفصيل عباية"؟
   const hasTailoredAbaya = useMemo(() => {
     const tailoredCategories = new Set(["تفصيل العبايات", "تفصيل عباية", "عباية", "عبايات"]);
     return products.some((p) => {
@@ -60,22 +68,25 @@ const Checkout = () => {
     }
   }, [products]);
 
-  // 🔒 عند التحويل إلى دول الخليج أوقف الدفع مقدم تلقائيًا
   useEffect(() => {
     if (country === "دول الخليج" && payDeposit) {
       setPayDeposit(false);
     }
   }, [country, payDeposit]);
 
-  // حالة المقدم الفعلية: تُلغى قسرًا في دول الخليج
   const payDepositEffective = country === "دول الخليج" ? false : payDeposit;
 
-  // ✅ نستدعي الدفع من بطاقة ثواني أو زر خارجي
   const makePayment = async (e) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
 
     if (products.length === 0) {
       setError("لا توجد منتجات في السلة. الرجاء إضافة منتجات قبل المتابعة إلى الدفع.");
+      return;
+    }
+
+    // ✅ الشرط المطلوب: إذا اختار "دول الخليج" يجب أن يختار الدولة
+    if (mustPickGulf && !gulfCountry) {
+      setError("الرجاء اختيار دولة من دول الخليج لإتمام الطلب.");
       return;
     }
 
@@ -88,12 +99,11 @@ const Checkout = () => {
       products: products.map((product) => ({
         _id: product._id,
         name: product.name,
-        price: product.price, // ر.ع.
+        price: product.price,
         quantity: product.quantity,
         image: Array.isArray(product.image) ? product.image[0] : product.image,
         measurements: product.measurements || {},
         category: product.category || "",
-        // ✅ إرسال بطاقة الهدية الخاصة بالمنتج كما هي (إن وُجدت)
         giftCard:
           product.giftCard &&
           (String(product.giftCard.from || "").trim() ||
@@ -110,13 +120,12 @@ const Checkout = () => {
       })),
       customerName,
       customerPhone,
-      country,       // 🔗 مرتبط مع Navbar عبر الـ Redux
-      gulfCountry,   // لتحديد 4/5 ر.ع في الباك
+      country,
+      gulfCountry, // ✅ مهم للباك لمعرفة 4 أو 5 ر.ع
       wilayat,
       description,
       email,
       depositMode: !!payDepositEffective,
-      // نُرسل بطاقة الهدية العامة إن وُجدت
       giftCard:
         giftCard &&
         (giftCard.from || giftCard.to || giftCard.phone || giftCard.note)
@@ -149,9 +158,9 @@ const Checkout = () => {
   };
 
   const displayTotal = useMemo(() => {
-    if (payDepositEffective) return (10 * exchangeRate).toFixed(2); // 10 ر.ع تُحوَّل عند الحاجة
-    return ((totalPrice + baseShippingFee) * exchangeRate).toFixed(2);
-  }, [payDepositEffective, exchangeRate, totalPrice, baseShippingFee]);
+    if (payDepositEffective) return (10 * exchangeRate).toFixed(2);
+    return ((totalPrice + shippingOMR) * exchangeRate).toFixed(2);
+  }, [payDepositEffective, exchangeRate, totalPrice, shippingOMR]);
 
   const renderMeasurementsDetails = (m) => {
     if (!m) return null;
@@ -172,15 +181,12 @@ const Checkout = () => {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      {/* Grid متناسق للهاتف والكمبيوتر */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-        {/* ✅ إدخال البيانات أولاً على الهاتف (order-1) ويسار على الكمبيوتر */}
         <div className="order-1 md:order-1 md:col-span-2">
           <div className="bg-white rounded-lg border border-gray-200 shadow p-4 md:p-6">
             <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">تفاصيل الفاتورة</h1>
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
-            {/* نُبقي الفورم فقط لإدخال البيانات — زر الإرسال موجود في عمود التأكيد */}
             <form className="space-y-4 md:space-y-6" dir="rtl">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -217,7 +223,6 @@ const Checkout = () => {
                   />
                 </div>
 
-                {/* البلد (مرتبط بـ Navbar عبر Redux) */}
                 <div>
                   <label className="block text-gray-700 mb-2">البلد</label>
                   <select
@@ -235,12 +240,11 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* عند اختيار "دول الخليج" تظهر قائمة لاختيار الدولة */}
               {country === "دول الخليج" && (
                 <div>
                   <label className="block text-gray-700 mb-2">اختر الدولة (دول الخليج)</label>
                   <select
-                    className="w-full p-2 border rounded-md"
+                    className={`w-full p-2 border rounded-md ${!gulfCountry ? 'border-red-300' : ''}`}
                     value={gulfCountry}
                     onChange={(e) => setGulfCountry(e.target.value)}
                   >
@@ -252,10 +256,11 @@ const Checkout = () => {
                     <option value="البحرين">البحرين</option>
                     <option value="أخرى">أخرى</option>
                   </select>
-                  <p className="text-xs text-gray-600 mt-2">
-                    الشحن: الإمارات <span className="font-semibold">4 ر.ع</span> — بقية دول الخليج{" "}
-                    <span className="font-semibold">5 ر.ع</span>.
-                  </p>
+                  {!gulfCountry && (
+                    <p className="text-xs text-red-600 mt-2">
+                      يجب اختيار الدولة لإكمال الطلب عند اختيار "دول الخليج".
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -282,7 +287,6 @@ const Checkout = () => {
                 />
               </div>
 
-              {/* زر دفع مقدم يظهر فقط إذا كان ضمن الطلب تفصيل عباية وليس في دول الخليج */}
               {hasTailoredAbaya && country !== "دول الخليج" && (
                 <div className="pt-2">
                   <button
@@ -299,13 +303,10 @@ const Checkout = () => {
                   </p>
                 </div>
               )}
-
-              {/* ⛔️ لا يوجد زر إتمام داخل الفورم — الزر موجود في عمود التأكيد */}
             </form>
           </div>
         </div>
 
-        {/* ✅ تأكيد الطلب أسفل على الهاتف (order-2) ويمين على الكمبيوتر */}
         <div className="order-2 md:order-2 md:col-span-1">
           <div className="w-full p-4 md:p-6 bg-white rounded-lg shadow-lg border border-gray-200 md:sticky md:top-4">
             <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-800">طلبك</h2>
@@ -333,7 +334,6 @@ const Checkout = () => {
                   </div>
                   {renderMeasurementsDetails(product.measurements)}
 
-                  {/* ✅ تفاصيل بطاقة الهدية الخاصة بهذا المنتج إن وُجدت */}
                   {product.giftCard &&
                     ((product.giftCard.from && String(product.giftCard.from).trim()) ||
                       (product.giftCard.to && String(product.giftCard.to).trim()) ||
@@ -358,26 +358,6 @@ const Checkout = () => {
                 </div>
               ))}
 
-              {/* بطاقة الهدية (إن وُجدت) - عرض وإزالة فقط */}
-              {giftCard && (giftCard.from || giftCard.to || giftCard.phone || giftCard.note) && (
-                <div className="mt-2 p-3 rounded-md bg-pink-50/40 border border-pink-200 text-gray-800 space-y-1">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold">بطاقة هدية</h3>
-                    <button
-                      onClick={() => dispatch(clearGiftCard())}
-                      className="text-xs text-red-600 underline hover:opacity-80"
-                    >
-                      إزالة البطاقة
-                    </button>
-                  </div>
-                  {!!giftCard.from && <p>من: {giftCard.from}</p>}
-                  {!!giftCard.to && <p>إلى: {giftCard.to}</p>}
-                  {!!giftCard.phone && <p>رقم المستلم: {giftCard.phone}</p>}
-                  {!!giftCard.note && <p>ملاحظات: {giftCard.note}</p>}
-                </div>
-              )}
-
-              {/* رسوم الشحن تُخفى عند دفع المقدم */}
               {!payDepositEffective && (
                 <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                   <span className="text-gray-800">رسوم الشحن</span>
@@ -399,28 +379,28 @@ const Checkout = () => {
               </div>
             </div>
 
-            {/* بوابة ثواني + زر إتمام الطلب أسفلها */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">بوابة ثواني للدفع الإلكتروني</h3>
 
-              {/* بطاقة دفع ثواني (ليست زرًا) */}
               <div
                 onClick={(e) => {
-                  if (products.length === 0) return;
+                  if (products.length === 0 || !isRegionReady) return;
                   makePayment(e);
                 }}
                 onKeyDown={(e) => {
-                  if (products.length === 0) return;
+                  if (products.length === 0 || !isRegionReady) return;
                   if (e.key === "Enter" || e.key === " ") makePayment(e);
                 }}
                 role="button"
-                aria-disabled={products.length === 0}
-                tabIndex={products.length === 0 ? -1 : 0}
+                aria-disabled={products.length === 0 || !isRegionReady}
+                tabIndex={products.length === 0 || !isRegionReady ? -1 : 0}
                 className={[
                   "w-full rounded-xl border border-gray-200 bg-white",
                   "px-4 py-3 shadow-sm flex items-center justify-center gap-3",
-                  "transition hover:shadow-md hover:border-[#799b52]",
-                  products.length === 0 ? "opacity-50 pointer-events-none select-none" : "cursor-pointer"
+                  "transition",
+                  products.length === 0 || !isRegionReady
+                    ? "opacity-50 pointer-events-none select-none"
+                    : "hover:shadow-md hover:border-[#799b52] cursor-pointer"
                 ].join(" ")}
               >
                 <img
@@ -435,18 +415,17 @@ const Checkout = () => {
                 </span>
               </div>
 
-              {/* نص الخصوصية */}
               <p className="mt-4 text-sm text-gray-600">
                 سيتم استخدام بياناتك الشخصية لمعالجة طلبك، ودعم تجربتك عبر هذا
                 الموقع، ولأغراض أخرى موضحة في{" "}
                 <a className="text-blue-600 hover:underline">سياسة الخصوصية</a>.
               </p>
 
-              {/* زر إتمام الطلب تحت بطاقة ثواني */}
               <button
                 onClick={makePayment}
                 className="mt-4 w-full bg-[#d3beaa] text-white px-6 py-3 rounded-md  transition-colors"
-                disabled={products.length === 0}
+                disabled={products.length === 0 || !isRegionReady}
+                title={!isRegionReady ? "الرجاء اختيار دولة من دول الخليج" : undefined}
               >
                 إتمام الطلب
               </button>

@@ -1,3 +1,3 @@
 export const getBaseUrl = () => {
-    return 'https://fiwah-b.vercel.app';//رابط الباك اند بدل 5000 رجع
+    return 'https://www.fawahaljabal.com';//رابط الباك اند بدل 5000 رجع
 } 

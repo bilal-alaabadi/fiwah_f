@@ -87,7 +87,7 @@ const Navbar = () => {
               <i className="ri-menu-line"></i>
             </button>
 
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+            <div className="absolute left-1/2 transform -translate-x-1/2 pt-5">
               <Link to="/">
                 <img
                   src={log}

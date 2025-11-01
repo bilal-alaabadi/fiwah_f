@@ -7,6 +7,7 @@ import {
   SiGooglepay,
 } from "react-icons/si";
 import { FaInstagram, FaWhatsapp, FaSnapchatGhost, FaTiktok } from "react-icons/fa";
+import Thw from "../assets/images__4_-removebg-preview.png";
 
 const Footer = () => {
   return (
@@ -42,7 +43,7 @@ const Footer = () => {
                   <SiVisa className="text-3xl md:text-4xl drop-shadow-sm" />
                   <SiMastercard className="text-3xl md:text-4xl drop-shadow-sm" />
                   <SiApplepay className="text-3xl md:text-4xl drop-shadow-sm" />
-                  <SiGooglepay className="text-3xl md:text-4xl drop-shadow-sm" />
+                  <img src={Thw} className="w-10 invert brightness-0" alt="Thawani" />
                 </div>
               </div>
 

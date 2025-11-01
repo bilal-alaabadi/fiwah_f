@@ -1,3 +1,4 @@
+// ========================= src/components/cart/CartModal.jsx =========================
 import React from 'react';
 import { RiCloseLine } from "react-icons/ri";
 import { useSelector, useDispatch } from 'react-redux';
@@ -13,6 +14,11 @@ const CartModal = ({ isOpen, onClose }) => {
   const exchangeRate = isAEDCountry ? 9.5 : 1;
 
   if (!isOpen) return null;
+
+  const getMaxStock = (p) => {
+    const s = Number(p?.stock);
+    return Number.isFinite(s) && s >= 0 ? s : Infinity;
+  };
 
   return (
     <div className="fixed inset-0 z-50" dir="rtl">
@@ -52,54 +58,61 @@ const CartModal = ({ isOpen, onClose }) => {
               سلة التسوق فارغة
             </p>
           ) : (
-            cartProducts.map((product, i) => (
-              <div key={i} className="pb-5 border-b">
-                <div className="flex gap-3 flex-row-reverse">
-                  <img
-                    src={Array.isArray(product.image) ? product.image[0] : product.image}
-                    alt={product.name}
-                    className="w-16 h-24 object-cover flex-shrink-0"
-                  />
+            cartProducts.map((product, i) => {
+              const maxStock = getMaxStock(product);
+              const canIncrement = product.quantity < maxStock;
 
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-semibold text-gray-900 leading-5 line-clamp-2">
-                        {product.name}
-                      </p>
-                      <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                        {(Number(product.price || 0) * exchangeRate).toFixed(2)} {currency}
-                      </p>
-                    </div>
+              return (
+                <div key={i} className="pb-5 border-b">
+                  <div className="flex gap-3 flex-row-reverse">
+                    <img
+                      src={Array.isArray(product.image) ? product.image[0] : product.image}
+                      alt={product.name}
+                      className="w-16 h-24 object-cover flex-shrink-0"
+                    />
 
-                    {/* التحكم بالكمية + إزالة */}
-                    <div className="mt-3 flex items-center gap-3">
-                      <button
-                        onClick={() => dispatch(removeFromCart(product._id))}
-                        className="text-sm text-red-600 hover:text-red-700 underline underline-offset-2"
-                      >
-                        إزالة
-                      </button>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-gray-900 leading-5 line-clamp-2">
+                          {product.name}
+                        </p>
+                        <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                          {(Number(product.price || 0) * exchangeRate).toFixed(2)} {currency}
+                        </p>
+                      </div>
 
-                      <div className="inline-flex items-center border rounded-lg overflow-hidden">
+                      {/* التحكم بالكمية + إزالة */}
+                      <div className="mt-3 flex items-center gap-3">
                         <button
-                          onClick={() => dispatch(updateQuantity({ id: product._id, type: 'decrement' }))}
-                          className="px-3 py-1.5 text-gray-700 hover:bg-gray-50"
+                          onClick={() => dispatch(removeFromCart(product._id))}
+                          className="text-sm text-red-600 hover:text-red-700 underline underline-offset-2"
                         >
-                          −
+                          إزالة
                         </button>
-                        <span className="px-3 py-1.5 text-gray-900">{product.quantity}</span>
-                        <button
-                          onClick={() => dispatch(updateQuantity({ id: product._id, type: 'increment' }))}
-                          className="px-3 py-1.5 text-gray-700 hover:bg-gray-50"
-                        >
-                          +
-                        </button>
+
+                        <div className="inline-flex items-center border rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => dispatch(updateQuantity({ id: product._id, type: 'decrement' }))}
+                            className="px-3 py-1.5 text-gray-700 hover:bg-gray-50"
+                          >
+                            −
+                          </button>
+                          <span className="px-3 py-1.5 text-gray-900">{product.quantity}</span>
+                          <button
+                            onClick={() => canIncrement && dispatch(updateQuantity({ id: product._id, type: 'increment' }))}
+                            className={`px-3 py-1.5 ${canIncrement ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed bg-gray-50'}`}
+                            disabled={!canIncrement}
+                            title={canIncrement ? '' : 'لا يمكن الزيادة عن المخزون المتاح'}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

@@ -1,4 +1,4 @@
-// ========================= UpdateProduct.jsx =========================
+// ========================= src/components/admin/updateProduct/UpdateProduct.jsx =========================
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFetchProductByIdQuery, useUpdateProductMutation } from '../../../../redux/features/products/productsApi';
@@ -62,6 +62,7 @@ const UpdateProduct = () => {
     description: '',
     image: [],
     inStock: true,   // متوفر افتراضياً
+    stock: '',       // ✅ جديد: الكمية (المخزون)
   });
 
   // الصور الجديدة (Files)
@@ -78,7 +79,6 @@ const UpdateProduct = () => {
   useEffect(() => {
     if (!productData) return;
 
-    // بعض الـ APIs ترجع { product, reviews }
     const p = productData.product ? productData.product : productData;
 
     const currentImages = Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [];
@@ -86,12 +86,13 @@ const UpdateProduct = () => {
     setProduct({
       name: p?.name || '',
       category: p?.category || '',
-      size: p?.size != null ? String(p.size) : '', // إلى نص للـ <SelectInput>
+      size: p?.size != null ? String(p.size) : '',
       price: p?.price != null ? String(p.price) : '',
       oldPrice: p?.oldPrice != null ? String(p.oldPrice) : '',
       description: p?.description || '',
       image: currentImages,
       inStock: typeof p?.inStock === 'boolean' ? p.inStock : true,
+      stock: p?.stock != null ? String(p.stock) : '', // ✅ تعبئة الكمية الحالية
     });
 
     setKeepImages(currentImages);
@@ -102,6 +103,10 @@ const UpdateProduct = () => {
     const { name, value } = e.target;
     setProduct((prev) => {
       if (name === 'category') return { ...prev, category: value, size: '' };
+      if (name === 'stock') {
+        const n = Math.max(0, Math.floor(Number(value || 0)));
+        return { ...prev, stock: String(n) };
+      }
       return { ...prev, [name]: value };
     });
   };
@@ -109,11 +114,10 @@ const UpdateProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // تحقق الحقول المطلوبة
     const required = {
       'اسم المنتج': product.name,
       'صنف المنتج': product.category,
-      'الحجم': product.size,            // كل منتج به وزن/سعة
+      'الحجم': product.size,
       'السعر': product.price,
       'الوصف': product.description,
     };
@@ -131,12 +135,16 @@ const UpdateProduct = () => {
       const formData = new FormData();
       formData.append('name', product.name);
       formData.append('category', product.category);
-      formData.append('price', product.price);                 // يُحوّل في السيرفر إلى Number
+      formData.append('price', product.price);
       formData.append('oldPrice', product.oldPrice || '');
       formData.append('description', product.description);
-      formData.append('size', product.size);                   // يُحوّل في السيرفر إلى Number
+      formData.append('size', product.size);
       formData.append('author', user?._id || '');
-      formData.append('inStock', String(product.inStock));     // 'true' أو 'false'
+      formData.append('inStock', String(product.inStock));
+      // ✅ إرسال الكمية (المخزون)
+      if (product.stock !== '') {
+        formData.append('stock', product.stock);
+      }
 
       // الصور المُبقاة من الحالية
       formData.append('keepImages', JSON.stringify(keepImages || []));
@@ -210,13 +218,25 @@ const UpdateProduct = () => {
           min="0"
         />
 
+        {/* ✅ خانة الكمية (المخزون) */}
+        <TextInput
+          label="الكمية (المخزون)"
+          name="stock"
+          type="number"
+          placeholder="مثال: 25"
+          value={product.stock}
+          onChange={handleChange}
+          min="0"
+          step="1"
+        />
+
         {/* كمبوننت التعديل: يعرض صور حالية + يحذف + يجمع ملفات جديدة */}
         <UploadImage
           name="image"
           id="image"
-          initialImages={product.image}   // صور حالية (روابط)
-          setImages={setNewImages}        // ملفات جديدة
-          setKeepImages={setKeepImages}   // الصور المُبقاة
+          initialImages={product.image}
+          setImages={setNewImages}
+          setKeepImages={setKeepImages}
         />
 
         <div className="text-right">

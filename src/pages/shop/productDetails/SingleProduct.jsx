@@ -24,33 +24,42 @@ const SingleProduct = () => {
 
   const unitPrice = (data.regularPrice || data.price || 0) * exchangeRate;
 
+  // ✅ إظهار كمية المخزون
+  const stock = typeof data.stock === 'number' ? data.stock : 0;
+  const isOutOfStock = stock <= 0;
+
   const handleAddToCart = () => {
+    if (isOutOfStock) return;
+
+    // تأكيد عدم تجاوز المطلوب للمخزون
+    const qtyToAdd = Math.max(1, Math.min(cartQty, stock || cartQty));
+
     dispatch(
       addToCart({
         ...data,
         price: data.price,
-        quantity: cartQty,
+        quantity: qtyToAdd,
         currency,
         exchangeRate,
       })
     );
+
+    // ✅ تصفير (إرجاع) الكمية إلى 1 بعد الإضافة
+    setCartQty(1);
   };
 
   const nextImage = () =>
     setCurrentImageIndex((prev) =>
-      prev === data.image.length - 1 ? 0 : prev + 1
+      prev === (data.image?.length || 0) - 1 ? 0 : prev + 1
     );
 
   const prevImage = () =>
     setCurrentImageIndex((prev) =>
-      prev === 0 ? data.image.length - 1 : prev - 1
+      prev === 0 ? (data.image?.length || 0) - 1 : prev - 1
     );
 
   return (
-    <section
-      className="section__container bg-gradient-to-r mt-8"
-      dir="rtl"
-    >
+    <section className="section__container bg-gradient-to-r mt-8" dir="rtl">
       <div className="flex flex-col items-center md:flex-row gap-8">
         {/* الصور */}
         <div className="md:w-1/2 w-full relative flex flex-col items-center">
@@ -63,11 +72,11 @@ const SingleProduct = () => {
                   alt={data.name}
                   className="w-full h-auto"
                   onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/500';
+                    e.currentTarget.src = 'https://via.placeholder.com/500';
                   }}
                 />
 
-                {/* أزرار التالي/السابق (تظهر فقط إذا كان هناك أكثر من صورة) */}
+                {/* أزرار التالي/السابق */}
                 {data.image.length > 1 && (
                   <>
                     <button
@@ -90,10 +99,10 @@ const SingleProduct = () => {
                 )}
               </div>
 
-              {/* جميع الصور بالأسفل (thumbnails) */}
+              {/* جميع الصور بالأسفل */}
               {data.image.length > 0 && (
                 <div className="mt-4 w-full">
-                  <div className="flex gap-3 flex-wrap justify-center md:justify-start overflow-x-auto py-1">
+                  <div className="flex gap-3 flex-wrap justify-center md:justify-center overflow-x-auto py-1">
                     {data.image.map((img, index) => (
                       <button
                         key={index}
@@ -109,7 +118,7 @@ const SingleProduct = () => {
                           alt={`صورة ${index + 1}`}
                           className="w-20 h-20 object-cover block"
                           onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/100';
+                            e.currentTarget.src = 'https://via.placeholder.com/100';
                           }}
                         />
                       </button>
@@ -124,9 +133,23 @@ const SingleProduct = () => {
         </div>
 
         {/* التفاصيل */}
-        <div className="md:w-1/2 w-full">
-          <h3 className="text-2xl font-semibold mb-4">{data.name}</h3>
-          <p className="text-gray-600 mb-2">الفئة: {data.category}</p>
+        <div className="md:w-1/2 w-full text-center">
+          <h3 className="text-2xl font-semibold mb-2">{data.name}</h3>
+          <p className="text-gray-600 mb-2">{data.category}</p>
+
+          {/* ✅ عرض كمية المخزون */}
+          <div className="mb-3 flex justify-center">
+            {isOutOfStock ? (
+              <span className="inline-block px-3 py-1 rounded-md bg-red-100 text-red-700 text-sm font-medium">
+                غير متوفر حالياً
+              </span>
+            ) : (
+              <span className="inline-block px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 text-sm font-medium">
+                المتوفر بالمخزون: {stock}
+              </span>
+            )}
+          </div>
+
           <p className="text-gray-600 mb-4">{data.description}</p>
 
           <div className="text-xl text-[#d3beaa] mb-6">
@@ -134,11 +157,12 @@ const SingleProduct = () => {
           </div>
 
           {/* عداد الكمية */}
-          <div className="mb-6 flex items-center gap-4">
+          <div className="mb-6 flex items-center justify-center gap-4">
             <button
               type="button"
               onClick={() => setCartQty((q) => (q > 1 ? q - 1 : 1))}
-              className="w-10 h-10 flex items-center justify-center bg-[#d3beaa] text-white rounded-md"
+              className={`w-10 h-10 flex items-center justify-center rounded-md text-white ${isOutOfStock ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#d3beaa]'}`}
+              disabled={isOutOfStock}
             >
               -
             </button>
@@ -147,8 +171,16 @@ const SingleProduct = () => {
             </div>
             <button
               type="button"
-              onClick={() => setCartQty((q) => q + 1)}
-              className="w-10 h-10 flex items-center justify-center bg-[#d3beaa] text-white rounded-md"
+              onClick={() =>
+                setCartQty((q) => {
+                  if (isOutOfStock) return q;
+                  // لا تتجاوز المخزون
+                  const next = q + 1;
+                  return stock ? Math.min(next, stock) : next;
+                })
+              }
+              className={`w-10 h-10 flex items-center justify-center rounded-md text-white ${isOutOfStock ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#d3beaa]'}`}
+              disabled={isOutOfStock}
             >
               +
             </button>
@@ -156,9 +188,14 @@ const SingleProduct = () => {
 
           <button
             onClick={handleAddToCart}
-            className="px-6 py-3 bg-[#d3beaa] text-white rounded-md hover:opacity-90"
+            disabled={isOutOfStock}
+            className={`px-6 py-3 rounded-md text-white transition ${
+              isOutOfStock
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-[#d3beaa] hover:opacity-90'
+            }`}
           >
-            إضافة إلى السلة
+            {isOutOfStock ? 'غير متوفر' : 'إضافة إلى السلة'}
           </button>
         </div>
       </div>

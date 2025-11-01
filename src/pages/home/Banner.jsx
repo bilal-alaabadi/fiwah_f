@@ -9,7 +9,7 @@ const Banner = () => {
                 {/* يمكن إضافة محتوى هنا إذا لزم الأمر */}
             </div>
 
-            <div className="mt-4 px-1 md:mt-8">
+            <div className="mt-4 px-1 md:mt-8 pt-4">
                 <Link to="/shop">
                     <img
                         src={timings}

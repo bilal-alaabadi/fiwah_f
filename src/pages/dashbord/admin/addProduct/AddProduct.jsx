@@ -1,3 +1,4 @@
+// ========================= src/components/admin/addProduct/AddProduct.jsx =========================
 import React, { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import TextInput from './TextInput';
@@ -21,8 +22,7 @@ const categories = [
   { label: 'خليط إكليل الجبل الفوح (السر السحري)', value: 'خليط إكليل الجبل الفوح (السر السحري)' },
 ];
 
-
-// خريطة أوزان/سعات لكل منتج (بالـ ml لمنتجات Al Fawah)
+// أوزان/سعات لكل منتج
 const WEIGHTS_MAP = {
   'واقي شمس الفوح': [50],
   'كريم اللبان الفوح': [100],
@@ -37,8 +37,6 @@ const WEIGHTS_MAP = {
   'خليط إكليل الجبل الفوح (السر السحري)': [150],
 };
 
-
-// مولد خيارات وزن حسب المنتج المختار
 const weightOptionsFor = (categoryValue) => {
   const nums = WEIGHTS_MAP[categoryValue] || [];
   return nums.map((n) => ({ label: `${n} مل`, value: n }));
@@ -50,19 +48,18 @@ const AddProduct = () => {
   const [product, setProduct] = useState({
     name: '',
     category: '',
-    weight: '',     // الوزن/السعة (إلزامي)
+    weight: '',
     price: '',
     description: '',
     oldPrice: '',
-    inStock: true,  // متوفر افتراضياً
+    inStock: true,
+    stock: '',            // جديد: الكمية
   });
 
   const [image, setImage] = useState([]);
-
   const [addProduct, { isLoading }] = useAddProductMutation();
   const navigate = useNavigate();
 
-  // خيارات الوزن تتحدّث تلقائياً عند تغيير الصنف
   const weightOptions = useMemo(
     () => [{ label: 'أختر الوزن', value: '' }, ...weightOptionsFor(product.category)],
     [product.category]
@@ -74,9 +71,12 @@ const AddProduct = () => {
       setProduct((prev) => ({ ...prev, inStock: !checked }));
     } else {
       setProduct((prev) => {
-        // لو غيّرنا الصنف، نفرغ الوزن ليعيد اختياره من القائمة الصحيحة
         if (name === 'category') {
           return { ...prev, category: value, weight: '' };
+        }
+        if (name === 'stock') {
+          const n = Math.max(0, Math.floor(Number(value || 0)));
+          return { ...prev, stock: String(n) };
         }
         return { ...prev, [name]: value };
       });
@@ -106,12 +106,16 @@ const AddProduct = () => {
 
     try {
       await addProduct({
-        ...product,
+        name: product.name,
+        category: product.category,
+        description: product.description,
         price: Number(product.price),
         oldPrice: product.oldPrice ? Number(product.oldPrice) : undefined,
-        weight: Number(product.weight), // تأكيد أن الوزن رقم
         image,
         author: user?._id,
+        size: Number(product.weight),
+        inStock: typeof product.inStock === 'boolean' ? product.inStock : true,
+        stock: product.stock !== '' ? Number(product.stock) : undefined, // جديد
       }).unwrap();
 
       alert('تمت إضافة المنتج بنجاح');
@@ -123,6 +127,7 @@ const AddProduct = () => {
         price: '',
         description: '',
         inStock: true,
+        stock: '',
       });
       setImage([]);
       navigate('/shop');
@@ -152,7 +157,6 @@ const AddProduct = () => {
           options={categories}
         />
 
-        {/* الوزن/السعة (إلزامي) */}
         <SelectInput
           label="الوزن / السعة"
           name="weight"
@@ -182,7 +186,18 @@ const AddProduct = () => {
           required
         />
 
-        {/* هل انتهى المنتج؟ (إذا تم التأشير = لا يمكن إضافته للسلة) */}
+        {/* جديد: خانة الكمية (المخزون) */}
+        <TextInput
+          label="الكمية (المخزون)"
+          name="stock"
+          type="number"
+          placeholder="مثال: 25"
+          value={product.stock}
+          onChange={handleChange}
+          min="0"
+          step="1"
+        />
+
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
