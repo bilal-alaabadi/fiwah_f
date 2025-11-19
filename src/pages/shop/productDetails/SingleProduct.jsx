@@ -68,7 +68,10 @@ const SingleProduct = () => {
               {/* الصورة الرئيسية */}
               <div className="overflow-hidden rounded-md relative w-full">
                 <img
-                  src={data.image[currentImageIndex]}
+                  src={data.image[currentImageIndex]?.replace(
+                    '/upload/',
+                    '/upload/f_auto,q_auto/'
+                  )}
                   alt={data.name}
                   className="w-full h-auto"
                   onError={(e) => {
@@ -114,7 +117,10 @@ const SingleProduct = () => {
                         title={`عرض الصورة رقم ${index + 1}`}
                       >
                         <img
-                          src={img}
+                          src={img?.replace(
+                            '/upload/',
+                            '/upload/f_auto,q_auto/'
+                          )}
                           alt={`صورة ${index + 1}`}
                           className="w-20 h-20 object-cover block"
                           onError={(e) => {

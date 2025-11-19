@@ -180,7 +180,7 @@ const Checkout = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+<div className="pt-20 p-4 md:pt-24 md:p-6 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         <div className="order-1 md:order-1 md:col-span-2">
           <div className="bg-white rounded-lg border border-gray-200 shadow p-4 md:p-6">

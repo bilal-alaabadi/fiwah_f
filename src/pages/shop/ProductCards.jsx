@@ -102,7 +102,10 @@ const ProductCards = ({ products }) => {
                 <Link to={`/shop/${product._id}`} className="block h-full">
                   <div className="h-64 w-full overflow-hidden">
                     <img
-                      src={product.image?.[0] || "https://via.placeholder.com/300"}
+                      src={(product.image?.[0] || "https://via.placeholder.com/300").replace(
+                        '/upload/',
+                        '/upload/f_auto,q_auto/'
+                      )}
                       alt={product.name || "صورة المنتج"}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                       onError={(e) => {
@@ -116,7 +119,10 @@ const ProductCards = ({ products }) => {
                 <div className="block h-full cursor-not-allowed select-none relative" aria-disabled="true">
                   <div className="h-64 w-full overflow-hidden">
                     <img
-                      src={product.image?.[0] || "https://via.placeholder.com/300"}
+                      src={(product.image?.[0] || "https://via.placeholder.com/300").replace(
+                        '/upload/',
+                        '/upload/f_auto,q_auto/'
+                      )}
                       alt={product.name || "صورة المنتج"}
                       className="w-full h-full object-cover opacity-70"
                       onError={(e) => {
