@@ -7,39 +7,43 @@ import UploadImage from './UploadImage';
 import { useAddProductMutation } from '../../../../redux/features/products/productsApi';
 import { useNavigate } from 'react-router-dom';
 
-const categories = [
-  { label: 'أختر منتج', value: '' },
-  { label: 'واقي شمس الفوح', value: 'واقي شمس الفوح' },
-  { label: 'كريم اللبان الفوح', value: 'كريم اللبان الفوح' },
-  { label: 'شامبو الشعر الفوح', value: 'شامبو الشعر الفوح' },
-  { label: 'جل الاستحمام الفوح', value: 'جل الاستحمام الفوح' },
-  { label: 'مقشر الجسم باللبان الفوح', value: 'مقشر الجسم باللبان الفوح' },
-  { label: 'مقشر الجسم بماء الورد الفوح', value: 'مقشر الجسم بماء الورد الفوح' },
-  { label: 'ماء الورد الأبيض الفوح', value: 'ماء الورد الأبيض الفوح' },
-  { label: 'ماء الورد الأحمر الفوح', value: 'ماء الورد الأحمر الفوح' },
-  { label: 'ماء اللبان الفوح', value: 'ماء اللبان الفوح' },
-  { label: 'زيت الزيتون الفوح (أوليو)', value: 'زيت الزيتون الفوح (أوليو)' },
-  { label: 'خليط إكليل الجبل الفوح (السر السحري)', value: 'خليط إكليل الجبل الفوح (السر السحري)' },
+const mainCategories = [
+  { label: 'أختر الفئة الأساسية', value: '' },
+  { label: 'الزيوت العطرية', value: 'الزيوت العطرية' },
+  { label: 'المياه العطرية', value: 'المياه العطرية' },
+  { label: 'منتجات العناية الشخصية', value: 'منتجات العناية الشخصية' },
 ];
 
-// أوزان/سعات لكل منتج
-const WEIGHTS_MAP = {
-  'واقي شمس الفوح': [50],
-  'كريم اللبان الفوح': [100],
-  'شامبو الشعر الفوح': [250],
-  'جل الاستحمام الفوح': [250],
-  'مقشر الجسم باللبان الفوح': [150],
-  'مقشر الجسم بماء الورد الفوح': [150],
-  'ماء الورد الأبيض الفوح': [250],
-  'ماء الورد الأحمر الفوح': [250],
-  'ماء اللبان الفوح': [250],
-  'زيت الزيتون الفوح (أوليو)': [250],
-  'خليط إكليل الجبل الفوح (السر السحري)': [150],
-};
-
-const weightOptionsFor = (categoryValue) => {
-  const nums = WEIGHTS_MAP[categoryValue] || [];
-  return nums.map((n) => ({ label: `${n} مل`, value: n }));
+const subCategoriesMap = {
+  'الزيوت العطرية': [
+    'زيت اللبان العماني',
+    'زيت إكليل الجبل',
+    'زيت الريحان',
+    'زيت العلعلان',
+    'زيت الياس',
+    'زيت عشبة الليمون',
+    'زيت النعناع',
+  ],
+  'المياه العطرية': [
+    'ماء اللبان العماني',
+    'ماء الورد الأحمر',
+    'ماء الورد الأبيض',
+    'ماء الريحان',
+    'ماء الياس',
+    'ماء العلعلان',
+  ],
+  'منتجات العناية الشخصية': [
+    'شامبو وسائل استحمام الورد العماني',
+    'سائل استحمام اللبان العماني',
+    'شامبو الياس',
+    'كريم اللبان العماني',
+    'واقي الشمس',
+    'صابونة الورد العماني',
+    'صابونة اللبان العماني',
+    'مزيل العرق باللبان العماني',
+    'مقشر الورد العماني',
+    'مقشر اللبان العماني',
+  ],
 };
 
 const AddProduct = () => {
@@ -47,40 +51,56 @@ const AddProduct = () => {
 
   const [product, setProduct] = useState({
     name: '',
+    mainCategory: '',
     category: '',
     weight: '',
     price: '',
     description: '',
     oldPrice: '',
     inStock: true,
-    stock: '',            // جديد: الكمية
+    stock: '',
   });
 
   const [image, setImage] = useState([]);
   const [addProduct, { isLoading }] = useAddProductMutation();
   const navigate = useNavigate();
 
-  const weightOptions = useMemo(
-    () => [{ label: 'أختر الوزن', value: '' }, ...weightOptionsFor(product.category)],
-    [product.category]
-  );
+  const subCategoryOptions = useMemo(() => {
+    const items = subCategoriesMap[product.mainCategory] || [];
+
+    return [
+      { label: 'أختر المنتج', value: '' },
+      ...items.map((item) => ({
+        label: item,
+        value: item,
+      })),
+    ];
+  }, [product.mainCategory]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     if (name === 'ended' && type === 'checkbox') {
       setProduct((prev) => ({ ...prev, inStock: !checked }));
-    } else {
-      setProduct((prev) => {
-        if (name === 'category') {
-          return { ...prev, category: value, weight: '' };
-        }
-        if (name === 'stock') {
-          const n = Math.max(0, Math.floor(Number(value || 0)));
-          return { ...prev, stock: String(n) };
-        }
-        return { ...prev, [name]: value };
-      });
+      return;
     }
+
+    setProduct((prev) => {
+      if (name === 'mainCategory') {
+        return {
+          ...prev,
+          mainCategory: value,
+          category: '',
+        };
+      }
+
+      if (name === 'stock') {
+        const n = Math.max(0, Math.floor(Number(value || 0)));
+        return { ...prev, stock: String(n) };
+      }
+
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -88,8 +108,9 @@ const AddProduct = () => {
 
     const required = {
       'أسم المنتج': product.name,
-      'صنف المنتج': product.category,
-      'الوزن/السعة': product.weight,
+      'الفئة الأساسية': product.mainCategory,
+      'الفئة الفرعية': product.category,
+      'الحجم': product.weight,
       'السعر': product.price,
       'الوصف': product.description,
       'الصور': image.length > 0,
@@ -107,6 +128,7 @@ const AddProduct = () => {
     try {
       await addProduct({
         name: product.name,
+        mainCategory: product.mainCategory,
         category: product.category,
         description: product.description,
         price: Number(product.price),
@@ -115,12 +137,14 @@ const AddProduct = () => {
         author: user?._id,
         size: Number(product.weight),
         inStock: typeof product.inStock === 'boolean' ? product.inStock : true,
-        stock: product.stock !== '' ? Number(product.stock) : undefined, // جديد
+        stock: product.stock !== '' ? Number(product.stock) : undefined,
       }).unwrap();
 
       alert('تمت إضافة المنتج بنجاح');
+
       setProduct({
         name: '',
+        mainCategory: '',
         category: '',
         weight: '',
         oldPrice: '',
@@ -129,6 +153,7 @@ const AddProduct = () => {
         inStock: true,
         stock: '',
       });
+
       setImage([]);
       navigate('/shop');
     } catch (err) {
@@ -140,6 +165,7 @@ const AddProduct = () => {
   return (
     <div className="container mx-auto mt-8" dir="rtl">
       <h2 className="text-2xl font-bold mb-6">إضافة منتج جديد</h2>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextInput
           label="أسم المنتج"
@@ -150,19 +176,29 @@ const AddProduct = () => {
         />
 
         <SelectInput
-          label="صنف المنتج"
-          name="category"
-          value={product.category}
+          label="الفئة الأساسية"
+          name="mainCategory"
+          value={product.mainCategory}
           onChange={handleChange}
-          options={categories}
+          options={mainCategories}
         />
 
         <SelectInput
-          label="الوزن / السعة"
+          label="الفئة الفرعية"
+          name="category"
+          value={product.category}
+          onChange={handleChange}
+          options={subCategoryOptions}
+        />
+
+        <TextInput
+          label="الحجم / السعة"
           name="weight"
+          type="number"
+          placeholder="مثال: 250"
           value={product.weight}
           onChange={handleChange}
-          options={weightOptions}
+          min="0"
         />
 
         <TextInput
@@ -186,7 +222,6 @@ const AddProduct = () => {
           required
         />
 
-        {/* جديد: خانة الكمية (المخزون) */}
         <TextInput
           label="الكمية (المخزون)"
           name="stock"

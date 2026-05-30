@@ -20,6 +20,10 @@ const CartModal = ({ isOpen, onClose }) => {
     return Number.isFinite(s) && s >= 0 ? s : Infinity;
   };
 
+  const getProductSize = (product) => {
+    return product?.size || product?.weight || product?.volume || 'غير محدد';
+  };
+
   return (
     <div className="fixed inset-0 z-50" dir="rtl">
       {/* الخلفية */}
@@ -42,6 +46,7 @@ const CartModal = ({ isOpen, onClose }) => {
           <h2 id="cart-title" className="text-lg font-bold text-gray-900">
             سلة التسوق
           </h2>
+
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 rounded p-1 transition"
@@ -63,19 +68,30 @@ const CartModal = ({ isOpen, onClose }) => {
               const canIncrement = product.quantity < maxStock;
 
               return (
-                <div key={i} className="pb-5 border-b">
+                <div key={product._id || product.id || i} className="pb-5 border-b">
                   <div className="flex gap-3 flex-row-reverse">
                     <img
-                      src={Array.isArray(product.image) ? product.image[0] : product.image}
+                      src={
+                        Array.isArray(product.image)
+                          ? product.image[0]
+                          : product.image
+                      }
                       alt={product.name}
                       className="w-16 h-24 object-cover flex-shrink-0"
                     />
 
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-semibold text-gray-900 leading-5 line-clamp-2">
-                          {product.name}
-                        </p>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 leading-5 line-clamp-2">
+                            {product.name}
+                          </p>
+
+                          <p className="text-xs text-gray-500 mt-1">
+                            الحجم: {getProductSize(product)}
+                          </p>
+                        </div>
+
                         <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
                           {(Number(product.price || 0) * exchangeRate).toFixed(2)} {currency}
                         </p>
@@ -92,17 +108,44 @@ const CartModal = ({ isOpen, onClose }) => {
 
                         <div className="inline-flex items-center border rounded-lg overflow-hidden">
                           <button
-                            onClick={() => dispatch(updateQuantity({ id: product._id, type: 'decrement' }))}
+                            onClick={() =>
+                              dispatch(
+                                updateQuantity({
+                                  id: product._id,
+                                  type: 'decrement',
+                                })
+                              )
+                            }
                             className="px-3 py-1.5 text-gray-700 hover:bg-gray-50"
                           >
                             −
                           </button>
-                          <span className="px-3 py-1.5 text-gray-900">{product.quantity}</span>
+
+                          <span className="px-3 py-1.5 text-gray-900">
+                            {product.quantity}
+                          </span>
+
                           <button
-                            onClick={() => canIncrement && dispatch(updateQuantity({ id: product._id, type: 'increment' }))}
-                            className={`px-3 py-1.5 ${canIncrement ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed bg-gray-50'}`}
+                            onClick={() =>
+                              canIncrement &&
+                              dispatch(
+                                updateQuantity({
+                                  id: product._id,
+                                  type: 'increment',
+                                })
+                              )
+                            }
+                            className={`px-3 py-1.5 ${
+                              canIncrement
+                                ? 'text-gray-700 hover:bg-gray-50'
+                                : 'text-gray-400 cursor-not-allowed bg-gray-50'
+                            }`}
                             disabled={!canIncrement}
-                            title={canIncrement ? '' : 'لا يمكن الزيادة عن المخزون المتاح'}
+                            title={
+                              canIncrement
+                                ? ''
+                                : 'لا يمكن الزيادة عن المخزون المتاح'
+                            }
                           >
                             +
                           </button>

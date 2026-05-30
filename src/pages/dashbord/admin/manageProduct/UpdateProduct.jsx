@@ -1,112 +1,148 @@
 // ========================= src/components/admin/updateProduct/UpdateProduct.jsx =========================
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useFetchProductByIdQuery, useUpdateProductMutation } from '../../../../redux/features/products/productsApi';
+import {
+  useFetchProductByIdQuery,
+  useUpdateProductMutation,
+} from '../../../../redux/features/products/productsApi';
 import { useSelector } from 'react-redux';
 import TextInput from '../addProduct/TextInput';
 import SelectInput from '../addProduct/SelectInput';
-// مهم: كمبوننت التعديل (يعرض/يحذف صور حالية + يرفع صور جديدة)
 import UploadImage from '../manageProduct/UploadImag';
 
-// ==================== ثوابت المنتجات والأوزان ====================
-const categories = [
-  { label: 'أختر منتج', value: '' },
-  { label: 'واقي شمس الفوح', value: 'واقي شمس الفوح' },
-  { label: 'كريم اللبان الفوح', value: 'كريم اللبان الفوح' },
-  { label: 'شامبو الشعر الفوح', value: 'شامبو الشعر الفوح' },
-  { label: 'جل الاستحمام الفوح', value: 'جل الاستحمام الفوح' },
-  { label: 'مقشر الجسم باللبان الفوح', value: 'مقشر الجسم باللبان الفوح' },
-  { label: 'مقشر الجسم بماء الورد الفوح', value: 'مقشر الجسم بماء الورد الفوح' },
-  { label: 'ماء الورد الأبيض الفوح', value: 'ماء الورد الأبيض الفوح' },
-  { label: 'ماء الورد الأحمر الفوح', value: 'ماء الورد الأحمر الفوح' },
-  { label: 'ماء اللبان الفوح', value: 'ماء اللبان الفوح' },
-  { label: 'زيت الزيتون الفوح (أوليو)', value: 'زيت الزيتون الفوح (أوليو)' },
-  { label: 'خليط إكليل الجبل الفوح (السر السحري)', value: 'خليط إكليل الجبل الفوح (السر السحري)' },
+const mainCategories = [
+  { label: 'أختر الفئة الأساسية', value: '' },
+  { label: 'الزيوت العطرية', value: 'الزيوت العطرية' },
+  { label: 'المياه العطرية', value: 'المياه العطرية' },
+  { label: 'منتجات العناية الشخصية', value: 'منتجات العناية الشخصية' },
 ];
 
-// خريطة أوزان/سعات لكل منتج (مل)
-const WEIGHTS_MAP = {
-  'واقي شمس الفوح': [50],
-  'كريم اللبان الفوح': [100],
-  'شامبو الشعر الفوح': [250],
-  'جل الاستحمام الفوح': [250],
-  'مقشر الجسم باللبان الفوح': [150],
-  'مقشر الجسم بماء الورد الفوح': [150],
-  'ماء الورد الأبيض الفوح': [250],
-  'ماء الورد الأحمر الفوح': [250],
-  'ماء اللبان الفوح': [250],
-  'زيت الزيتون الفوح (أوليو)': [250],
-  'خليط إكليل الجبل الفوح (السر السحري)': [150],
+const subCategoriesMap = {
+  'الزيوت العطرية': [
+    'زيت اللبان العماني',
+    'زيت إكليل الجبل',
+    'زيت الريحان',
+    'زيت العلعلان',
+    'زيت الياس',
+    'زيت عشبة الليمون',
+    'زيت النعناع',
+  ],
+  'المياه العطرية': [
+    'ماء اللبان العماني',
+    'ماء الورد الأحمر',
+    'ماء الورد الأبيض',
+    'ماء الريحان',
+    'ماء الياس',
+    'ماء العلعلان',
+  ],
+  'منتجات العناية الشخصية': [
+    'شامبو وسائل استحمام الورد العماني',
+    'سائل استحمام اللبان العماني',
+    'شامبو الياس',
+    'كريم اللبان العماني',
+    'واقي الشمس',
+    'صابونة الورد العماني',
+    'صابونة اللبان العماني',
+    'مزيل العرق باللبان العماني',
+    'مقشر الورد العماني',
+    'مقشر اللبان العماني',
+  ],
 };
 
-const weightOptionsFor = (categoryValue) => {
-  const nums = WEIGHTS_MAP[categoryValue] || [];
-  return nums.map((n) => ({ label: `${n} مل`, value: String(n) }));
+const findMainCategoryBySub = (subCategory) => {
+  for (const [main, subs] of Object.entries(subCategoriesMap)) {
+    if (subs.includes(subCategory)) return main;
+  }
+  return '';
 };
 
-// ==================== الكمبوننت ====================
 const UpdateProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
-  const { data: productData, isLoading: isFetching, error: fetchError } = useFetchProductByIdQuery(id);
+  const {
+    data: productData,
+    isLoading: isFetching,
+    error: fetchError,
+  } = useFetchProductByIdQuery(id);
+
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
 
   const [product, setProduct] = useState({
     name: '',
+    mainCategory: '',
     category: '',
-    size: '',        // سعة/وزن بالمل
+    weight: '',
     price: '',
     oldPrice: '',
     description: '',
     image: [],
-    inStock: true,   // متوفر افتراضياً
-    stock: '',       // ✅ جديد: الكمية (المخزون)
+    inStock: true,
+    stock: '',
   });
 
-  // الصور الجديدة (Files)
   const [newImages, setNewImages] = useState([]);
-  // الصور المُبقاة من الحالية (روابط)
   const [keepImages, setKeepImages] = useState([]);
 
-  // خيارات الوزن حسب الصنف
-  const weightOptions = useMemo(
-    () => [{ label: 'اختر الحجم', value: '' }, ...weightOptionsFor(product.category)],
-    [product.category]
-  );
+  const subCategoryOptions = useMemo(() => {
+    const items = subCategoriesMap[product.mainCategory] || [];
+
+    return [
+      { label: 'أختر المنتج', value: '' },
+      ...items.map((item) => ({
+        label: item,
+        value: item,
+      })),
+    ];
+  }, [product.mainCategory]);
 
   useEffect(() => {
     if (!productData) return;
 
     const p = productData.product ? productData.product : productData;
+    const currentImages = Array.isArray(p?.image)
+      ? p.image
+      : p?.image
+      ? [p.image]
+      : [];
 
-    const currentImages = Array.isArray(p?.image) ? p.image : p?.image ? [p.image] : [];
+    const detectedMainCategory =
+      p?.mainCategory || findMainCategoryBySub(p?.category || '');
 
     setProduct({
       name: p?.name || '',
+      mainCategory: detectedMainCategory,
       category: p?.category || '',
-      size: p?.size != null ? String(p.size) : '',
+      weight: p?.size || p?.weight || '',
       price: p?.price != null ? String(p.price) : '',
       oldPrice: p?.oldPrice != null ? String(p.oldPrice) : '',
       description: p?.description || '',
       image: currentImages,
       inStock: typeof p?.inStock === 'boolean' ? p.inStock : true,
-      stock: p?.stock != null ? String(p.stock) : '', // ✅ تعبئة الكمية الحالية
+      stock: p?.stock != null ? String(p.stock) : '',
     });
 
     setKeepImages(currentImages);
   }, [productData]);
 
-  // عند تغيير الصنف: نفرّغ الحجم ليعيد المستخدم اختياره حسب الخيارات الصحيحة
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setProduct((prev) => {
-      if (name === 'category') return { ...prev, category: value, size: '' };
+      if (name === 'mainCategory') {
+        return {
+          ...prev,
+          mainCategory: value,
+          category: '',
+        };
+      }
+
       if (name === 'stock') {
         const n = Math.max(0, Math.floor(Number(value || 0)));
         return { ...prev, stock: String(n) };
       }
+
       return { ...prev, [name]: value };
     });
   };
@@ -116,8 +152,9 @@ const UpdateProduct = () => {
 
     const required = {
       'اسم المنتج': product.name,
-      'صنف المنتج': product.category,
-      'الحجم': product.size,
+      'الفئة الأساسية': product.mainCategory,
+      'الفئة الفرعية': product.category,
+      'الحجم': product.weight,
       'السعر': product.price,
       'الوصف': product.description,
     };
@@ -133,37 +170,51 @@ const UpdateProduct = () => {
 
     try {
       const formData = new FormData();
+
       formData.append('name', product.name);
+      formData.append('mainCategory', product.mainCategory);
       formData.append('category', product.category);
+      formData.append('description', product.description);
       formData.append('price', product.price);
       formData.append('oldPrice', product.oldPrice || '');
-      formData.append('description', product.description);
-      formData.append('size', product.size);
+      formData.append('size', product.weight);
       formData.append('author', user?._id || '');
       formData.append('inStock', String(product.inStock));
-      // ✅ إرسال الكمية (المخزون)
+
       if (product.stock !== '') {
         formData.append('stock', product.stock);
       }
 
-      // الصور المُبقاة من الحالية
       formData.append('keepImages', JSON.stringify(keepImages || []));
 
-      // الصور الجديدة (Files)
       if (Array.isArray(newImages) && newImages.length > 0) {
         newImages.forEach((file) => formData.append('image', file));
       }
 
       await updateProduct({ id, body: formData }).unwrap();
+
       alert('تم تحديث المنتج بنجاح');
       navigate('/dashboard/manage-products');
     } catch (error) {
-      alert('حدث خطأ أثناء تحديث المنتج: ' + (error?.data?.message || error?.message || 'خطأ غير معروف'));
+      console.error('FULL ERROR:', error);
+      alert(
+        'حدث خطأ أثناء تحديث المنتج: ' +
+          (error?.data?.message || error?.message || 'خطأ غير معروف')
+      );
     }
   };
 
-  if (isFetching) return <div className="text-center py-8">جاري تحميل بيانات المنتج...</div>;
-  if (fetchError) return <div className="text-center py-8 text-red-500">خطأ في تحميل بيانات المنتج</div>;
+  if (isFetching) {
+    return <div className="text-center py-8">جاري تحميل بيانات المنتج...</div>;
+  }
+
+  if (fetchError) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        خطأ في تحميل بيانات المنتج
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto mt-8 px-4" dir="rtl">
@@ -173,27 +224,37 @@ const UpdateProduct = () => {
         <TextInput
           label="اسم المنتج"
           name="name"
-          placeholder="أكتب اسم المنتج"
+          placeholder="اكتب اسم المنتج"
           value={product.name}
           onChange={handleChange}
           required
         />
 
         <SelectInput
-          label="صنف المنتج"
-          name="category"
-          value={product.category}
+          label="الفئة الأساسية"
+          name="mainCategory"
+          value={product.mainCategory}
           onChange={handleChange}
-          options={categories}
+          options={mainCategories}
           required
         />
 
         <SelectInput
-          label="الحجم / السعة"
-          name="size"
-          value={product.size}
+          label="الفئة الفرعية"
+          name="category"
+          value={product.category}
           onChange={handleChange}
-          options={weightOptions}
+          options={subCategoryOptions}
+          required
+        />
+
+        <TextInput
+          label="الحجم / السعة"
+          name="weight"
+          type="text"
+          placeholder="مثال: 250 مل أو 100 جرام"
+          value={product.weight}
+          onChange={handleChange}
           required
         />
 
@@ -218,7 +279,6 @@ const UpdateProduct = () => {
           min="0"
         />
 
-        {/* ✅ خانة الكمية (المخزون) */}
         <TextInput
           label="الكمية (المخزون)"
           name="stock"
@@ -230,7 +290,6 @@ const UpdateProduct = () => {
           step="1"
         />
 
-        {/* كمبوننت التعديل: يعرض صور حالية + يحذف + يجمع ملفات جديدة */}
         <UploadImage
           name="image"
           id="image"
@@ -240,22 +299,25 @@ const UpdateProduct = () => {
         />
 
         <div className="text-right">
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             وصف المنتج
           </label>
+
           <textarea
             name="description"
             id="description"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+            className="add-product-InputCSS"
             value={product.description}
-            placeholder="أكتب وصف المنتج"
+            placeholder="اكتب وصف المنتج"
             onChange={handleChange}
             required
             rows={4}
           />
         </div>
 
-        {/* حالة التوفر */}
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2">
             <input
@@ -263,7 +325,9 @@ const UpdateProduct = () => {
               name="availability"
               value="available"
               checked={product.inStock === true}
-              onChange={() => setProduct((prev) => ({ ...prev, inStock: true }))}
+              onChange={() =>
+                setProduct((prev) => ({ ...prev, inStock: true }))
+              }
             />
             <span>المنتج متوفر</span>
           </label>
@@ -274,7 +338,9 @@ const UpdateProduct = () => {
               name="availability"
               value="ended"
               checked={product.inStock === false}
-              onChange={() => setProduct((prev) => ({ ...prev, inStock: false }))}
+              onChange={() =>
+                setProduct((prev) => ({ ...prev, inStock: false }))
+              }
             />
             <span>انتهى المنتج</span>
           </label>
@@ -283,7 +349,7 @@ const UpdateProduct = () => {
         <div className="flex justify-end pt-4">
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            className="add-product-btn disabled:opacity-50"
             disabled={isUpdating}
           >
             {isUpdating ? 'جاري التحديث...' : 'حفظ التغييرات'}

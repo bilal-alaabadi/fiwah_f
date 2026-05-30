@@ -5,18 +5,19 @@ import { clearCart } from '../../redux/features/cart/cartSlice';
 import { Link } from 'react-router-dom';
 
 const computeGulfShippingOMR = (country, totalItems) => {
-  // نفس منطق الريدكس لضمان التطابق في العرض
   const n = Math.max(0, Number(totalItems) || 0);
 
   if (country === 'عُمان' || country === 'عمان') return 2;
   if (country === 'الإمارات') return 4;
 
   if (country === 'دول الخليج') {
-    const base = 5;                // أول 3 منتجات
-    if (n <= 3) return base;       // لا زيادة لأول 3
-    const extraItems = n - 3;      // من الرابع فصاعدًا
-    const blocks = Math.ceil(extraItems / 3); // كل 3 منتجات إضافية
-    return base + blocks * 4;      // +4 ر.ع لكل بلوك
+    const base = 5;
+    if (n <= 3) return base;
+
+    const extraItems = n - 3;
+    const blocks = Math.ceil(extraItems / 3);
+
+    return base + blocks * 4;
   }
 
   return 2;
@@ -30,17 +31,52 @@ const OrderSummary = ({ onClose }) => {
   const currency = isAED ? 'د.إ' : 'ر.ع.';
   const exchangeRate = isAED ? 9.5 : 1;
 
-  // إجمالي عدد القطع في السلة
-  const totalItems = products.reduce((acc, p) => acc + Number(p.quantity || 0), 0);
+  const totalItems = products.reduce(
+    (acc, p) => acc + Number(p.quantity || 0),
+    0
+  );
 
-  // احسب الشحن بالريال العُماني وفق القاعدة الجديدة
   const shippingOMR = computeGulfShippingOMR(country, totalItems);
 
-  // المجموع الكلي بالعملة المعروضة
   const grandTotal = (Number(totalPrice) + Number(shippingOMR)) * exchangeRate;
 
   return (
     <div className="text-sm text-gray-800" dir="rtl">
+      {/* المنتجات داخل السلة */}
+      {products.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {products.map((p) => (
+            <div
+              key={p._id || p.id}
+              className="flex items-start justify-between border-b pb-2"
+            >
+              <div className="pr-1">
+                <p className="font-medium text-gray-800">
+                  {p.name}
+                </p>
+
+                <p className="text-xs text-gray-500 mt-1">
+                  الحجم: {p.size || p.weight || 'غير محدد'}
+                </p>
+
+                <p className="text-xs text-gray-500">
+                  الكمية: {p.quantity || 1}
+                </p>
+              </div>
+
+              <span className="font-medium whitespace-nowrap">
+                {(
+                  Number(p.price || 0) *
+                  Number(p.quantity || 1) *
+                  exchangeRate
+                ).toFixed(2)}{' '}
+                {currency}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* المجاميع */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -72,7 +108,7 @@ const OrderSummary = ({ onClose }) => {
         <Link to="/checkout" className="block">
           <button
             onClick={onClose}
-            className="w-full rounded-md bg-[#d3beaa] text-white py-2.5 text-sm font-medium  transition-colors"
+            className="w-full rounded-md bg-[#d3beaa] text-white py-2.5 text-sm font-medium transition-colors"
           >
             المتابعة للدفع
           </button>

@@ -1,9 +1,8 @@
-// ========================= src/components/Checkout/Checkout.jsx (نهائي) =========================
+// ========================= src/components/Checkout/Checkout.jsx =========================
 import React, { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { RiBankCardLine } from "react-icons/ri";
 import { getBaseUrl } from "../../utils/baseURL";
-import { setCountry, clearGiftCard } from "../../redux/features/cart/cartSlice";
+import { setCountry } from "../../redux/features/cart/cartSlice";
 import Thw from "../../assets/images__4_-removebg-preview.png";
 
 const Checkout = () => {
@@ -15,7 +14,6 @@ const Checkout = () => {
   const [email, setEmail] = useState("");
   const [wilayat, setWilayat] = useState("");
   const [description, setDescription] = useState("");
-
   const [payDeposit, setPayDeposit] = useState(false);
   const [gulfCountry, setGulfCountry] = useState("");
 
@@ -24,38 +22,40 @@ const Checkout = () => {
   const currency = country === "دول الخليج" ? "د.إ" : "ر.ع.";
   const exchangeRate = country === "دول الخليج" ? 9.5 : 1;
 
-  // ✅ يجب اختيار دولة خليجية عندما تكون "دول الخليج" مفعلة
   const mustPickGulf = country === "دول الخليج";
   const isRegionReady = !mustPickGulf || !!gulfCountry;
 
-  // إجمالي عدد القطع في السلة
   const totalItems = useMemo(
     () => products.reduce((sum, p) => sum + Number(p.quantity || 0), 0),
     [products]
   );
 
-  // ✅ الشحن (ريال عُماني) مع سياسة: أول 3 منتجات لا تغيّر السعر، وكل 3 إضافية +4 ر.ع.
   const shippingOMR = useMemo(() => {
     if (country === "دول الخليج") {
-      const base = gulfCountry === "الإمارات" ? 4 : 5; // الأساس
+      const base = gulfCountry === "الإمارات" ? 4 : 5;
       const n = Math.max(0, totalItems);
+
       if (n <= 3) return base;
+
       const extra = n - 3;
-      const blocks = Math.ceil(extra / 3); // 👈 يبدأ من القطعة الرابعة
+      const blocks = Math.ceil(extra / 3);
+
       return base + blocks * 4;
     }
-    return 2; // داخل عُمان ثابت
+
+    return 2;
   }, [country, gulfCountry, totalItems]);
 
-  // عرض الشحن بحسب العملة المختارة
   const shippingFee = shippingOMR * exchangeRate;
 
   const hasTailoredAbaya = useMemo(() => {
     const tailoredCategories = new Set(["تفصيل العبايات", "تفصيل عباية", "عباية", "عبايات"]);
+
     return products.some((p) => {
       const cat = (p.category || "").trim();
       const isAbayaCategory = tailoredCategories.has(cat);
       const hasMeasures = p.measurements && Object.keys(p.measurements).length > 0;
+
       return isAbayaCategory && hasMeasures;
     });
   }, [products]);
@@ -84,7 +84,6 @@ const Checkout = () => {
       return;
     }
 
-    // ✅ الشرط المطلوب: إذا اختار "دول الخليج" يجب أن يختار الدولة
     if (mustPickGulf && !gulfCountry) {
       setError("الرجاء اختيار دولة من دول الخليج لإتمام الطلب.");
       return;
@@ -104,6 +103,7 @@ const Checkout = () => {
         image: Array.isArray(product.image) ? product.image[0] : product.image,
         measurements: product.measurements || {},
         category: product.category || "",
+        size: product.size || product.weight || "",
         giftCard:
           product.giftCard &&
           (String(product.giftCard.from || "").trim() ||
@@ -121,7 +121,7 @@ const Checkout = () => {
       customerName,
       customerPhone,
       country,
-      gulfCountry, // ✅ مهم للباك لمعرفة 4 أو 5 ر.ع
+      gulfCountry,
       wilayat,
       description,
       email,
@@ -136,16 +136,24 @@ const Checkout = () => {
     try {
       const response = await fetch(`${getBaseUrl()}/api/orders/create-checkout-session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.details?.description || errorData.error || "Failed to create checkout session");
+
+        throw new Error(
+          errorData?.details?.description ||
+            errorData.error ||
+            "Failed to create checkout session"
+        );
       }
 
       const session = await response.json();
+
       if (session.paymentLink) {
         window.location.href = session.paymentLink;
       } else {
@@ -159,11 +167,13 @@ const Checkout = () => {
 
   const displayTotal = useMemo(() => {
     if (payDepositEffective) return (10 * exchangeRate).toFixed(2);
+
     return ((totalPrice + shippingOMR) * exchangeRate).toFixed(2);
   }, [payDepositEffective, exchangeRate, totalPrice, shippingOMR]);
 
   const renderMeasurementsDetails = (m) => {
     if (!m) return null;
+
     return (
       <div className="text-xs text-gray-600 mt-1 space-y-0.5">
         {m.length && <p>الطول: {m.length}</p>}
@@ -180,11 +190,14 @@ const Checkout = () => {
   };
 
   return (
-<div className="pt-20 p-4 md:pt-24 md:p-6 max-w-6xl mx-auto">
+    <div className="pt-20 p-4 md:pt-24 md:p-6 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         <div className="order-1 md:order-1 md:col-span-2">
           <div className="bg-white rounded-lg border border-gray-200 shadow p-4 md:p-6">
-            <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">تفاصيل الفاتورة</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">
+              تفاصيل الفاتورة
+            </h1>
+
             {error && <div className="text-red-500 mb-4">{error}</div>}
 
             <form className="space-y-4 md:space-y-6" dir="rtl">
@@ -231,7 +244,10 @@ const Checkout = () => {
                     onChange={(e) => {
                       const val = e.target.value;
                       dispatch(setCountry(val));
-                      if (val !== "دول الخليج") setGulfCountry("");
+
+                      if (val !== "دول الخليج") {
+                        setGulfCountry("");
+                      }
                     }}
                   >
                     <option value="عُمان">عُمان</option>
@@ -242,9 +258,14 @@ const Checkout = () => {
 
               {country === "دول الخليج" && (
                 <div>
-                  <label className="block text-gray-700 mb-2">اختر الدولة (دول الخليج)</label>
+                  <label className="block text-gray-700 mb-2">
+                    اختر الدولة (دول الخليج)
+                  </label>
+
                   <select
-                    className={`w-full p-2 border rounded-md ${!gulfCountry ? 'border-red-300' : ''}`}
+                    className={`w-full p-2 border rounded-md ${
+                      !gulfCountry ? "border-red-300" : ""
+                    }`}
                     value={gulfCountry}
                     onChange={(e) => setGulfCountry(e.target.value)}
                   >
@@ -256,6 +277,7 @@ const Checkout = () => {
                     <option value="البحرين">البحرين</option>
                     <option value="أخرى">أخرى</option>
                   </select>
+
                   {!gulfCountry && (
                     <p className="text-xs text-red-600 mt-2">
                       يجب اختيار الدولة لإكمال الطلب عند اختيار "دول الخليج".
@@ -277,7 +299,9 @@ const Checkout = () => {
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-2">وصف إضافي (اختياري)</label>
+                <label className="block text-gray-700 mb-2">
+                  وصف إضافي (اختياري)
+                </label>
                 <textarea
                   className="w-full p-2 border rounded-md"
                   value={description}
@@ -293,11 +317,14 @@ const Checkout = () => {
                     type="button"
                     onClick={() => setPayDeposit((v) => !v)}
                     className={`px-3 py-1 text-sm rounded-md border transition ${
-                      payDeposit ? "bg-[#799b52] text-white border-[#799b52]" : "bg-white text-[#799b52] border-[#799b52]"
+                      payDeposit
+                        ? "bg-[#799b52] text-white border-[#799b52]"
+                        : "bg-white text-[#799b52] border-[#799b52]"
                     }`}
                   >
                     {payDeposit ? "إلغاء دفع المقدم" : "دفع مقدم 10 ر.ع"}
                   </button>
+
                   <p className="text-xs text-gray-600 mt-2">
                     عند تفعيل "دفع مقدم"، سيتم دفع 10 ر.ع الآن فقط، ويتم احتساب المبلغ المتبقي لاحقاً.
                   </p>
@@ -309,7 +336,9 @@ const Checkout = () => {
 
         <div className="order-2 md:order-2 md:col-span-1">
           <div className="w-full p-4 md:p-6 bg-white rounded-lg shadow-lg border border-gray-200 md:sticky md:top-4">
-            <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-800">طلبك</h2>
+            <h2 className="text-lg md:text-xl font-bold mb-4 text-gray-800">
+              طلبك
+            </h2>
 
             <div className="space-y-4">
               {products.map((product) => (
@@ -318,9 +347,16 @@ const Checkout = () => {
                   className="py-2 border-b border-gray-100"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <span className="text-gray-700">
-                      {product.name} × {product.quantity}
-                    </span>
+                    <div>
+                      <span className="text-gray-700">
+                        {product.name} × {product.quantity}
+                      </span>
+
+                      <p className="text-xs text-gray-500 mt-1">
+                        الحجم: {product.size || product.weight || "غير محدد"}
+                      </p>
+                    </div>
+
                     <span className="text-gray-900 font-medium whitespace-nowrap">
                       {Math.max(
                         0,
@@ -332,6 +368,7 @@ const Checkout = () => {
                       {currency}
                     </span>
                   </div>
+
                   {renderMeasurementsDetails(product.measurements)}
 
                   {product.giftCard &&
@@ -340,16 +377,22 @@ const Checkout = () => {
                       (product.giftCard.phone && String(product.giftCard.phone).trim()) ||
                       (product.giftCard.note && String(product.giftCard.note).trim())) && (
                       <div className="mt-2 p-2 rounded-md bg-pink-50/60 border border-pink-200 text-[12px] text-pink-900 space-y-0.5">
-                        <div className="font-semibold text-pink-700">بطاقة هدية</div>
+                        <div className="font-semibold text-pink-700">
+                          بطاقة هدية
+                        </div>
+
                         {product.giftCard.from && String(product.giftCard.from).trim() && (
                           <div>من: {product.giftCard.from}</div>
                         )}
+
                         {product.giftCard.to && String(product.giftCard.to).trim() && (
                           <div>إلى: {product.giftCard.to}</div>
                         )}
+
                         {product.giftCard.phone && String(product.giftCard.phone).trim() && (
                           <div>رقم المستلم: {product.giftCard.phone}</div>
                         )}
+
                         {product.giftCard.note && String(product.giftCard.note).trim() && (
                           <div>ملاحظات: {product.giftCard.note}</div>
                         )}
@@ -372,6 +415,7 @@ const Checkout = () => {
                 <span className="text-gray-800 font-semibold">
                   {payDepositEffective ? "الإجمالي (دفعة مقدم)" : "الإجمالي"}
                 </span>
+
                 <p className="text-gray-900 font-bold">
                   {currency}
                   {displayTotal}
@@ -380,7 +424,9 @@ const Checkout = () => {
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">بوابة ثواني للدفع الإلكتروني</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                بوابة ثواني للدفع الإلكتروني
+              </h3>
 
               <div
                 onClick={(e) => {
@@ -389,7 +435,10 @@ const Checkout = () => {
                 }}
                 onKeyDown={(e) => {
                   if (products.length === 0 || !isRegionReady) return;
-                  if (e.key === "Enter" || e.key === " ") makePayment(e);
+
+                  if (e.key === "Enter" || e.key === " ") {
+                    makePayment(e);
+                  }
                 }}
                 role="button"
                 aria-disabled={products.length === 0 || !isRegionReady}
@@ -400,7 +449,7 @@ const Checkout = () => {
                   "transition",
                   products.length === 0 || !isRegionReady
                     ? "opacity-50 pointer-events-none select-none"
-                    : "hover:shadow-md hover:border-[#799b52] cursor-pointer"
+                    : "hover:shadow-md hover:border-[#799b52] cursor-pointer",
                 ].join(" ")}
               >
                 <img
@@ -410,6 +459,7 @@ const Checkout = () => {
                   loading="lazy"
                   decoding="async"
                 />
+
                 <span className="text-gray-900 font-medium">
                   {payDepositEffective ? "دفع الدفعة (10 ر.ع)" : "الدفع باستخدام ثواني"}
                 </span>
@@ -423,7 +473,7 @@ const Checkout = () => {
 
               <button
                 onClick={makePayment}
-                className="mt-4 w-full bg-[#d3beaa] text-white px-6 py-3 rounded-md  transition-colors"
+                className="mt-4 w-full bg-[#d3beaa] text-white px-6 py-3 rounded-md transition-colors"
                 disabled={products.length === 0 || !isRegionReady}
                 title={!isRegionReady ? "الرجاء اختيار دولة من دول الخليج" : undefined}
               >
