@@ -61,7 +61,7 @@ const Login = () => {
 
             <button
                 type='submit'
-                className='w-full mt-5 bg-[#CB908B] text-white hover:bg-indigo-500 font-medium py-3 rounded-md'
+                className='w-full mt-5 bg-[#d3beaa] text-white hover:bg-indigo-500 font-medium py-3 rounded-md'
             >
                 تسجيل الدخول
             </button>

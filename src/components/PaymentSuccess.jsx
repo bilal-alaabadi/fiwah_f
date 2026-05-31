@@ -37,6 +37,7 @@ const PaymentSuccess = () => {
           const productsDetails = await Promise.all(
             (data.order.products || []).map(async (item) => {
               let fetched = {};
+
               try {
                 const response = await fetch(`${getBaseUrl()}/api/products/${item.productId}`);
                 if (response.ok) {
@@ -57,7 +58,11 @@ const PaymentSuccess = () => {
                 name: item.name || fetched.name || 'منتج',
                 quantity: item.quantity,
                 measurements: item.measurements || {},
-                selectedSize: item.selectedSize,
+
+                // ✅ حفظ وإظهار الحجم القادم من الطلب
+                size: item.size || item.selectedSize || fetched.size || '',
+                selectedSize: item.size || item.selectedSize || fetched.size || '',
+
                 category: item.category || fetched.category || '',
                 image: item.image || fetched.image || '',
                 description: fetched.description || '',
@@ -85,8 +90,13 @@ const PaymentSuccess = () => {
 
   const renderMeasurements = (m) => {
     if (!m || typeof m !== 'object') return null;
-    const entries = Object.entries(m).filter(([_, v]) => v !== '' && v !== null && v !== undefined);
+
+    const entries = Object.entries(m).filter(
+      ([_, v]) => v !== '' && v !== null && v !== undefined
+    );
+
     if (entries.length === 0) return null;
+
     return (
       <div className="mt-3 text-sm rounded p-3">
         <h5 className="font-semibold mb-2">القياسات / الخيارات:</h5>
@@ -106,6 +116,7 @@ const PaymentSuccess = () => {
 
   const isDeposit = !!order.depositMode;
   const remaining = Number(order.remainingAmount || 0);
+
   const hasGift = Boolean(
     order?.giftCard &&
     (order.giftCard.from || order.giftCard.to || order.giftCard.phone || order.giftCard.note)
@@ -121,7 +132,9 @@ const PaymentSuccess = () => {
           </span>
         )}
       </h2>
+
       <p className="text-gray-600">رقم الطلب: {order.orderId}</p>
+
       {order.paymentSessionId && (
         <p className="text-gray-600">معرّف جلسة الدفع: {order.paymentSessionId}</p>
       )}
@@ -130,11 +143,35 @@ const PaymentSuccess = () => {
       {hasGift && (
         <div className="mt-4 p-3 rounded-md bg-pink-50 border border-pink-200 text-pink-900 text-sm">
           <h4 className="font-semibold mb-2">بيانات بطاقة الهدية</h4>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
-            {order.giftCard.from && <div><span className="font-medium">من: </span>{order.giftCard.from}</div>}
-            {order.giftCard.to && <div><span className="font-medium">إلى: </span>{order.giftCard.to}</div>}
-            {order.giftCard.phone && <div><span className="font-medium">رقم المستلم: </span>{order.giftCard.phone}</div>}
-            {order.giftCard.note && <div className="md:col-span-2"><span className="font-medium">ملاحظات الهدية: </span>{order.giftCard.note}</div>}
+            {order.giftCard.from && (
+              <div>
+                <span className="font-medium">من: </span>
+                {order.giftCard.from}
+              </div>
+            )}
+
+            {order.giftCard.to && (
+              <div>
+                <span className="font-medium">إلى: </span>
+                {order.giftCard.to}
+              </div>
+            )}
+
+            {order.giftCard.phone && (
+              <div>
+                <span className="font-medium">رقم المستلم: </span>
+                {order.giftCard.phone}
+              </div>
+            )}
+
+            {order.giftCard.note && (
+              <div className="md:col-span-2">
+                <span className="font-medium">ملاحظات الهدية: </span>
+                {order.giftCard.note}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -149,6 +186,7 @@ const PaymentSuccess = () => {
       {/* تفاصيل المنتجات */}
       <div className="mt-8 pt-6">
         <h3 className="text-xl font-bold mb-4">تفاصيل المنتجات</h3>
+
         <div className="space-y-6">
           {products.map((product, index) => (
             <div key={index} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg">
@@ -163,8 +201,10 @@ const PaymentSuccess = () => {
                   }}
                 />
               </div>
+
               <div className="md:w-3/4">
                 <h4 className="text-lg font-semibold">{product.name}</h4>
+
                 {product.description && (
                   <p className="text-gray-600 mt-2">{product.description}</p>
                 )}
@@ -179,10 +219,11 @@ const PaymentSuccess = () => {
                   <span>{product.quantity}</span>
                 </div>
 
-                {product.selectedSize && (
+                {/* ✅ هنا يظهر الحجم مثل 100 مل أو 250 جرام */}
+                {(product.size || product.selectedSize) && (
                   <div className="mt-2">
-                    <span className="font-medium">الحجم/المقاس: </span>
-                    <span>{product.selectedSize}</span>
+                    <span className="font-medium"> جرام / مل:</span>
+                    <span>{product.size || product.selectedSize}</span>
                   </div>
                 )}
 
@@ -196,18 +237,34 @@ const PaymentSuccess = () => {
                     (product.giftCard.note && String(product.giftCard.note).trim())) && (
                     <div className="mt-3 p-3 rounded-md bg-pink-50 border border-pink-200 text-pink-900 text-sm">
                       <div className="font-semibold mb-1">بطاقة هدية</div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1">
                         {product.giftCard.from && String(product.giftCard.from).trim() && (
-                          <div><span className="font-medium">من: </span>{product.giftCard.from}</div>
+                          <div>
+                            <span className="font-medium">من: </span>
+                            {product.giftCard.from}
+                          </div>
                         )}
+
                         {product.giftCard.to && String(product.giftCard.to).trim() && (
-                          <div><span className="font-medium">إلى: </span>{product.giftCard.to}</div>
+                          <div>
+                            <span className="font-medium">إلى: </span>
+                            {product.giftCard.to}
+                          </div>
                         )}
+
                         {product.giftCard.phone && String(product.giftCard.phone).trim() && (
-                          <div><span className="font-medium">رقم المستلم: </span>{product.giftCard.phone}</div>
+                          <div>
+                            <span className="font-medium">رقم المستلم: </span>
+                            {product.giftCard.phone}
+                          </div>
                         )}
+
                         {product.giftCard.note && String(product.giftCard.note).trim() && (
-                          <div className="md:col-span-2"><span className="font-medium">ملاحظات الهدية: </span>{product.giftCard.note}</div>
+                          <div className="md:col-span-2">
+                            <span className="font-medium">ملاحظات الهدية: </span>
+                            {product.giftCard.note}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -221,6 +278,7 @@ const PaymentSuccess = () => {
       {/* ملخص الطلب */}
       <div className="mt-8 border-t pt-6">
         <h3 className="text-xl font-bold mb-4">ملخص الطلب</h3>
+
         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
           {!isDeposit ? (
             <>
@@ -233,24 +291,32 @@ const PaymentSuccess = () => {
 
               <div className="flex justify-between py-2">
                 <span>رسوم الشحن:</span>
-                <span className="font-semibold">{formatPrice(order.shippingFee)} {currency}</span>
+                <span className="font-semibold">
+                  {formatPrice(order.shippingFee)} {currency}
+                </span>
               </div>
 
               <div className="flex justify-between py-2 border-t pt-3">
                 <span className="font-medium">الإجمالي النهائي:</span>
-                <span className="font-bold text-lg">{formatPrice(order.amount)} {currency}</span>
+                <span className="font-bold text-lg">
+                  {formatPrice(order.amount)} {currency}
+                </span>
               </div>
             </>
           ) : (
             <>
               <div className="flex justify-between py-2">
                 <span>تم دفع مقدم:</span>
-                <span className="font-semibold">{formatPrice(order.amount)} {currency}</span>
+                <span className="font-semibold">
+                  {formatPrice(order.amount)} {currency}
+                </span>
               </div>
 
               <div className="flex justify-between py-2">
                 <span>المبلغ المتبقي:</span>
-                <span className="font-semibold">{formatPrice(remaining)} {currency}</span>
+                <span className="font-semibold">
+                  {formatPrice(remaining)} {currency}
+                </span>
               </div>
 
               <div className="text-xs text-gray-600">
@@ -261,18 +327,38 @@ const PaymentSuccess = () => {
 
           {/* إظهار بيانات الهدية داخل الملخص أيضًا */}
           {hasGift && (
-            <div className="rounded-md border  bg-pink-50 p-3 space-y-2">
+            <div className="rounded-md border bg-pink-50 p-3 space-y-2">
               <div className="flex justify-between">
                 <span>نوع الطلب:</span>
                 <span className="font-semibold text-pink-700">هدية 🎁</span>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                {order.giftCard.from && <div><span className="font-medium">من: </span>{order.giftCard.from}</div>}
-                {order.giftCard.to && <div><span className="font-medium">إلى: </span>{order.giftCard.to}</div>}
-                {order.giftCard.phone && <div><span className="font-medium">رقم المستلم: </span>{order.giftCard.phone}</div>}
+                {order.giftCard.from && (
+                  <div>
+                    <span className="font-medium">من: </span>
+                    {order.giftCard.from}
+                  </div>
+                )}
+
+                {order.giftCard.to && (
+                  <div>
+                    <span className="font-medium">إلى: </span>
+                    {order.giftCard.to}
+                  </div>
+                )}
+
+                {order.giftCard.phone && (
+                  <div>
+                    <span className="font-medium">رقم المستلم: </span>
+                    {order.giftCard.phone}
+                  </div>
+                )}
+
                 {order.giftCard.note && (
                   <div className="md:col-span-2">
-                    <span className="font-medium">ملاحظات الهدية: </span>{order.giftCard.note}
+                    <span className="font-medium">ملاحظات الهدية: </span>
+                    {order.giftCard.note}
                   </div>
                 )}
               </div>
@@ -288,6 +374,7 @@ const PaymentSuccess = () => {
             <span>اسم العميل:</span>
             <span className="font-semibold">{order.customerName}</span>
           </div>
+
           <div className="flex justify-between py-2">
             <span>البريد الإلكتروني:</span>
             <span className="font-semibold">{order.email}</span>

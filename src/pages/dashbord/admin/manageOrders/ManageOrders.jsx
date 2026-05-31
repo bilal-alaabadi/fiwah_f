@@ -1,4 +1,4 @@
-// ========================= ManageOrders.jsx (نهائي للطباعة D100 صفحة واحدة) =========================
+// ========================= ManageOrders.jsx (نهائي للطباعة D100 صفحة واحدة + إظهار المنتجات والحجم عند الطباعة) =========================
 import React, { useState } from 'react';
 import { useDeleteOrderMutation, useGetAllOrdersQuery } from '../../../../redux/features/orders/orderApi';
 import { formatDate } from '../../../../utils/formateDate';
@@ -22,7 +22,9 @@ const ManageOrders = () => {
   };
 
   const handlePrintOrder = () => {
-    setTimeout(() => window.print(), 100);
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   const handleDownloadPDF = () => {
@@ -81,10 +83,25 @@ const ManageOrders = () => {
   };
 
   const getProductSize = (product) =>
-    (product?.size || product?.selectedSize || product?.measurements?.size || '').toString().trim();
+    (
+      product?.size ||
+      product?.selectedSize ||
+      product?.weight ||
+      product?.measurements?.size ||
+      ''
+    )
+      .toString()
+      .trim();
 
   const getProductColor = (product) =>
-    (product?.selectedColor || product?.color || product?.measurements?.color || '').toString().trim();
+    (
+      product?.selectedColor ||
+      product?.color ||
+      product?.measurements?.color ||
+      ''
+    )
+      .toString()
+      .trim();
 
   const renderMeasurements = (m) => {
     if (!m || typeof m !== 'object') return null;
@@ -118,6 +135,7 @@ const ManageOrders = () => {
 
   const renderGiftCard = (gc) => {
     if (!hasGiftValues(gc)) return null;
+
     return (
       <div className="gift-card-print">
         <div className="font-semibold">بطاقة هدية</div>
@@ -143,7 +161,10 @@ const ManageOrders = () => {
     const isDep = isDepositOrder(o);
 
     const linesProducts = (o.products || [])
-      .map(p => `- ${p.name} (${p.quantity}x ${formatPrice(p.price)} ر.ع)`)
+      .map((p) => {
+        const size = getProductSize(p);
+        return `- ${p.name}${size ? ` - الحجم: ${size}` : ''} (${p.quantity}x ${formatPrice(p.price)} ر.ع)`;
+      })
       .join('\n');
 
     const message = `مرحباً ${o.customerName || 'عميلنا العزيز'},
@@ -285,6 +306,10 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   display: none;
 }
 
+.print-products-only {
+  display: none;
+}
+
 @media print {
   @page {
     size: 4in 6in;
@@ -315,14 +340,15 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   .print-modal {
     position: fixed !important;
     top: 0 !important;
-    left: 0 !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
     width: 4in !important;
     height: 6in !important;
     max-width: 4in !important;
     max-height: 6in !important;
     min-height: 6in !important;
-    margin: 0 !important;
-    padding: 4mm 5mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 2mm !important;
     background: #fff !important;
     box-shadow: none !important;
     border: none !important;
@@ -331,7 +357,7 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
     box-sizing: border-box !important;
     text-align: center !important;
     direction: rtl !important;
-    zoom: 0.88 !important;
+    zoom: 0.76 !important;
   }
 
   .print-modal button,
@@ -343,7 +369,6 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
     visibility: hidden !important;
   }
 
-  /* إخفاء الجدول كامل أثناء الطباعة */
   .print-modal table,
   .print-modal thead,
   .print-modal tbody,
@@ -357,7 +382,6 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
     visibility: hidden !important;
   }
 
-  /* إخفاء الأسعار وأي عناصر خاصة بالسعر */
   .price,
   .total,
   .subtotal,
@@ -370,6 +394,30 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
     visibility: hidden !important;
   }
 
+  .print-products-only {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+  }
+
+  .print-product-card,
+  .print-product-card * {
+    visibility: visible !important;
+  }
+
+  .print-product-card {
+    display: block !important;
+    width: 100% !important;
+    margin: 1mm auto !important;
+    padding: 1mm 0.8mm !important;
+    border: 1px solid #ddd !important;
+    border-radius: 1.5mm !important;
+    background: #fff !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+
   .print-modal,
   .print-modal * {
     page-break-inside: avoid !important;
@@ -380,35 +428,37 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
 
   .print-header {
     display: block !important;
+    width: 100% !important;
     text-align: center !important;
-    margin: 0 0 3mm 0 !important;
-    padding: 0 0 2mm 0 !important;
+    margin: 0 auto 1.5mm auto !important;
+    padding: 0 0 1mm 0 !important;
     border-bottom: 1px solid #ddd !important;
   }
 
   .invoice-title {
-    font-size: 28px !important;
-    font-weight: 800 !important;
-    line-height: 1.2 !important;
-    margin: 0 0 1mm 0 !important;
+    font-size: 32px !important;
+    font-weight: 900 !important;
+    line-height: 1.1 !important;
+    margin: 0 0 0.8mm 0 !important;
     text-align: center !important;
   }
 
   .invoice-meta {
     text-align: center !important;
-    font-size: 18px !important;
-    line-height: 1.4 !important;
+    font-size: 21px !important;
+    line-height: 1.25 !important;
+    margin: 0 auto !important;
   }
 
   .invoice-meta p {
-    margin: 0.8mm 0 !important;
+    margin: 0.4mm 0 !important;
   }
 
   .print-modal h3 {
-    font-size: 20px !important;
-    font-weight: 800 !important;
-    margin: 0 0 1mm 0 !important;
-    padding: 0 0 1mm 0 !important;
+    font-size: 23px !important;
+    font-weight: 900 !important;
+    margin: 0 0 0.8mm 0 !important;
+    padding: 0 0 0.8mm 0 !important;
     border-bottom: 1px solid #ddd !important;
     text-align: center !important;
   }
@@ -416,20 +466,26 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   .print-modal p,
   .print-modal span,
   .print-modal div {
-    font-size: 15px !important;
-    line-height: 1.35 !important;
+    font-size: 19px !important;
+    line-height: 1.28 !important;
     text-align: center !important;
+  }
+
+  .print-modal strong {
+    font-size: 19px !important;
+    font-weight: 900 !important;
   }
 
   .print-modal .grid {
     display: block !important;
+    width: 100% !important;
   }
 
   .print-modal .mb-6,
   .print-modal .mb-4,
   .print-modal .mb-3,
   .print-modal .mb-2 {
-    margin-bottom: 2mm !important;
+    margin-bottom: 1mm !important;
   }
 
   .print-modal .bg-gray-50,
@@ -440,73 +496,101 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   .print-modal .p-4,
   .print-modal .p-3,
   .print-modal .p-6 {
-    padding: 1.5mm !important;
+    padding: 0.7mm !important;
   }
 
   .print-modal .rounded-lg {
-    border-radius: 2mm !important;
+    border-radius: 1.5mm !important;
   }
 
   .print-modal .space-y-1 > * + * {
-    margin-top: 0.5mm !important;
+    margin-top: 0.3mm !important;
+  }
+
+  .print-section {
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
   }
 
   .print-product-name {
-    font-size: 16px !important;
-    font-weight: 800 !important;
+    font-size: 23px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    margin: 0 0 0.5mm 0 !important;
+    line-height: 1.18 !important;
+  }
+
+  .print-product-line {
+    font-size: 20px !important;
+    line-height: 1.25 !important;
+    margin: 0.35mm 0 !important;
     text-align: center !important;
   }
 
   .measurements-box {
-    margin-top: 1mm !important;
-    padding: 1mm !important;
+    width: 100% !important;
+    margin: 0.7mm auto 0 auto !important;
+    padding: 0.7mm !important;
     background: #fafafa !important;
     border: 1px solid #eee !important;
-    border-radius: 1.5mm !important;
+    border-radius: 1.2mm !important;
     text-align: center !important;
+    box-sizing: border-box !important;
   }
 
   .measurements-title {
-    margin: 0 0 0.5mm 0 !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
+    margin: 0 0 0.3mm 0 !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
     text-align: center !important;
   }
 
   .measurements-grid {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 0.5mm 1mm !important;
+    gap: 0.3mm 0.5mm !important;
+    width: 100% !important;
   }
 
   .measurement-item {
-    font-size: 13px !important;
-    line-height: 1.3 !important;
+    font-size: 17px !important;
+    line-height: 1.25 !important;
     text-align: center !important;
   }
 
   .gift-card-print {
-    margin-top: 1mm !important;
-    padding: 1mm !important;
+    width: 100% !important;
+    margin: 0.7mm auto 0 auto !important;
+    padding: 0.7mm !important;
     border: 1px solid #f4c2d7 !important;
     background: #fff5f8 !important;
     text-align: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .gift-card-print,
+  .gift-card-print div {
+    font-size: 18px !important;
+    line-height: 1.25 !important;
   }
 
   .print-price-total {
     display: block !important;
     visibility: visible !important;
-    margin-top: 2mm !important;
-    padding: 1.5mm !important;
+    width: 100% !important;
+    margin: 1mm auto 0 auto !important;
+    padding: 1mm !important;
     border: 1px solid #ddd !important;
     border-radius: 1.5mm !important;
     background: #fff !important;
-    font-size: 17px !important;
-    font-weight: 800 !important;
+    font-size: 23px !important;
+    font-weight: 900 !important;
     text-align: center !important;
+    box-sizing: border-box !important;
   }
 }
-
 
 /* PDF MODE */
 
@@ -518,10 +602,11 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   overflow: hidden !important;
   box-shadow: none !important;
   border: none !important;
-  padding: 4mm 5mm !important;
+  padding: 2mm 2mm !important;
+  margin: 0 auto !important;
   background: #fff !important;
-  font-size: 14px !important;
-  line-height: 1.35 !important;
+  font-size: 18px !important;
+  line-height: 1.28 !important;
   text-align: center !important;
   direction: rtl !important;
   box-sizing: border-box !important;
@@ -543,7 +628,6 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   display: none !important;
 }
 
-/* إخفاء الجدول والأسعار في PDF */
 .for-pdf table,
 .for-pdf thead,
 .for-pdf tbody,
@@ -564,25 +648,103 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
   visibility: hidden !important;
 }
 
+.for-pdf .print-products-only {
+  display: block !important;
+  visibility: visible !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+.for-pdf .print-product-card {
+  display: block !important;
+  width: 100% !important;
+  margin: 1mm auto !important;
+  padding: 1mm 0.8mm !important;
+  border: 1px solid #ddd !important;
+  border-radius: 1.5mm !important;
+  background: #fff !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
 .for-pdf .print-header {
   display: block !important;
+  width: 100% !important;
   text-align: center !important;
-  margin-bottom: 3mm !important;
+  margin: 0 auto 1.5mm auto !important;
   border-bottom: 1px solid #eee !important;
-  padding-bottom: 2mm !important;
+  padding-bottom: 1mm !important;
+}
+
+.for-pdf .invoice-title {
+  font-size: 32px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+}
+
+.for-pdf .invoice-meta {
+  font-size: 21px !important;
+  line-height: 1.25 !important;
+}
+
+.for-pdf h3 {
+  font-size: 23px !important;
+  font-weight: 900 !important;
+}
+
+.for-pdf p,
+.for-pdf span,
+.for-pdf div {
+  font-size: 19px !important;
+  line-height: 1.28 !important;
+}
+
+.for-pdf strong {
+  font-size: 19px !important;
+  font-weight: 900 !important;
+}
+
+.for-pdf .print-product-name {
+  font-size: 23px !important;
+  font-weight: 900 !important;
+  line-height: 1.18 !important;
+}
+
+.for-pdf .print-product-line {
+  font-size: 20px !important;
+  line-height: 1.25 !important;
+}
+
+.for-pdf .measurements-box {
+  width: 100% !important;
+  margin: 0.7mm auto 0 auto !important;
+  padding: 0.7mm !important;
+  box-sizing: border-box !important;
+}
+
+.for-pdf .measurements-title {
+  font-size: 18px !important;
+  font-weight: 900 !important;
+}
+
+.for-pdf .measurement-item {
+  font-size: 17px !important;
+  line-height: 1.25 !important;
 }
 
 .for-pdf .print-price-total {
   display: block !important;
   visibility: visible !important;
-  margin-top: 2mm !important;
-  padding: 1.5mm !important;
+  width: 100% !important;
+  margin: 1mm auto 0 auto !important;
+  padding: 1mm !important;
   border: 1px solid #ddd !important;
   border-radius: 1.5mm !important;
   background: #fff !important;
-  font-size: 17px !important;
-  font-weight: 800 !important;
+  font-size: 23px !important;
+  font-weight: 900 !important;
   text-align: center !important;
+  box-sizing: border-box !important;
 }
 `}
 </style>
@@ -618,6 +780,7 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
                   <h3 className="font-bold text-base md:text-lg mb-2 border-b pb-2">معلومات التوصيل</h3>
                   <div className="space-y-1 text-sm">
                     <p><strong>البلد:</strong> {viewOrder.country || 'غير محدد'}</p>
+                    {viewOrder.gulfCountry && <p><strong>دولة الخليج:</strong> {viewOrder.gulfCountry}</p>}
                     <p><strong>الولاية:</strong> {viewOrder.wilayat || 'غير محدد'}</p>
                     <p><strong>ملاحظات:</strong> {viewOrder.description || 'لا توجد ملاحظات'}</p>
                   </div>
@@ -665,11 +828,15 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
                               </p>
 
                               {getProductSize(product) && (
-                                <p className="text-xs text-gray-500">الحجم: {getProductSize(product)}</p>
+                                <p className="text-xs text-gray-500">
+                                  الحجم: {getProductSize(product)}
+                                </p>
                               )}
 
                               {getProductColor(product) && (
-                                <p className="text-xs text-gray-500">اللون: {getProductColor(product)}</p>
+                                <p className="text-xs text-gray-500">
+                                  اللون: {getProductColor(product)}
+                                </p>
                               )}
 
                               {renderMeasurements(product.measurements)}
@@ -694,11 +861,15 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
                         </p>
 
                         {getProductSize(product) && (
-                          <p className="text-xs text-gray-500">الحجم: {getProductSize(product)}</p>
+                          <p className="text-xs text-gray-500">
+                            الحجم: {getProductSize(product)}
+                          </p>
                         )}
 
                         {getProductColor(product) && (
-                          <p className="text-xs text-gray-500">اللون: {getProductColor(product)}</p>
+                          <p className="text-xs text-gray-500">
+                            اللون: {getProductColor(product)}
+                          </p>
                         )}
 
                         {renderMeasurements(product.measurements)}
@@ -713,6 +884,42 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
                       </div>
                     ))}
                   </div>
+
+                  {/* ✅ هذا القسم يظهر فقط عند الضغط على طباعة / PDF */}
+                  <div className="print-products-only">
+                    {viewOrder.products?.map((product, index) => (
+                      <div key={index} className="print-product-card">
+                        <p className="print-product-name">
+                          {index + 1}. {product.name || 'منتج غير محدد'}
+                        </p>
+
+                        <p className="print-product-line">
+                          <strong>الكمية:</strong> {product.quantity || 0}
+                        </p>
+
+                        {getProductSize(product) && (
+                          <p className="print-product-line">
+                            <strong>الحجم:</strong> {getProductSize(product)}
+                          </p>
+                        )}
+
+                        {getProductColor(product) && (
+                          <p className="print-product-line">
+                            <strong>اللون:</strong> {getProductColor(product)}
+                          </p>
+                        )}
+
+                        {product.category && (
+                          <p className="print-product-line">
+                            <strong>الفئة:</strong> {product.category}
+                          </p>
+                        )}
+
+                        {renderMeasurements(product.measurements)}
+                        {renderGiftCard(product.giftCard)}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -721,6 +928,7 @@ ${isDep ? 'طريقة الدفع: دفعة مقدم' : `الإجمالي الن�
 
                 {(() => {
                   const prods = Array.isArray(viewOrder?.products) ? viewOrder.products : [];
+
                   const productsSubtotal = prods.reduce(
                     (sum, p) => sum + Number(p?.price || 0) * Number(p?.quantity || 0),
                     0
